@@ -1,9 +1,56 @@
 import { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { CheckCircle2, CreditCard, Printer } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, Coins, CreditCard, Landmark, Printer } from "lucide-react";
 import Brand from "../components/Brand";
 import { field } from "../components/ui";
-import { database, invoiceLink, invoiceStatus, money, totals, useWorkspaceData, type Invoice, type PaymentSettings } from "../lib/operations";
+import { database, invoiceLink, invoiceStatus, money, paymentLink, totals, useWorkspaceData, type Invoice, type PaymentSettings } from "../lib/operations";
+
+function PaymentMethods({ invoice, settings }: { invoice: Invoice; settings: PaymentSettings }) {
+  const bank = settings.bank_name && settings.account_name && settings.account_number;
+  const crypto = settings.crypto_coin && settings.crypto_network && settings.crypto_address;
+  const checkout = paymentLink(settings.payment_url);
+  const card = "min-w-0 break-inside-avoid rounded-xl border border-slate-200 p-5 text-sm";
+  const title = "flex items-center gap-2 text-base font-semibold";
+  const details = "mt-4 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 [&>dt]:text-slate-600 [&>dd]:font-medium [&>dd]:[overflow-wrap:anywhere]";
+  const note = "mt-3 whitespace-pre-wrap text-sm text-slate-600 [overflow-wrap:anywhere]";
+
+  return <section className="space-y-3" aria-labelledby="invoice-payment-title">
+    <h2 id="invoice-payment-title" className="text-lg font-semibold">Payment methods</h2>
+    {bank && <section className={card}>
+      <h3 className={title}><Landmark size={18} aria-hidden="true"/>Bank transfer</h3>
+      <dl className={details}>
+        {settings.bank_currency && <><dt>Bank currency</dt><dd>{settings.bank_currency}</dd></>}
+        <dt>Bank</dt><dd>{settings.bank_name}</dd>
+        <dt>Account name</dt><dd>{settings.account_name}</dd>
+        <dt>Account number</dt><dd className="select-all font-mono">{settings.account_number}</dd>
+        <dt>Transfer reference</dt><dd>{invoice.number}</dd>
+      </dl>
+      {settings.bank_currency && settings.bank_currency !== invoice.currency &&
+        <p className={note}>Confirm the transfer amount in {settings.bank_currency} with your project lead before paying.</p>}
+      {settings.bank_instructions && <p className={note}>{settings.bank_instructions}</p>}
+    </section>}
+    {crypto && <section className={card}>
+      <h3 className={title}><Coins size={18} aria-hidden="true"/>Crypto payment</h3>
+      <dl className={details}>
+        <dt>Coin</dt><dd>{settings.crypto_coin}</dd>
+        <dt>Network</dt><dd>{settings.crypto_network}</dd>
+        <dt>Wallet address</dt><dd dir="ltr" className="select-all font-mono">{settings.crypto_address}</dd>
+      </dl>
+      <p className={note}>Confirm the amount in {settings.crypto_coin} with your project lead before sending.</p>
+      {settings.crypto_instructions && <p className={note}>{settings.crypto_instructions}</p>}
+    </section>}
+    {checkout && <section className={card}>
+      <h3 className={title}><CreditCard size={18} aria-hidden="true"/>Payment link</h3>
+      <a href={checkout} target="_blank" rel="noopener noreferrer" className="btn-primary mt-4 print:hidden">
+        Open payment provider <ArrowUpRight size={16} aria-hidden="true"/>
+      </a>
+      <p className="mt-2 hidden [overflow-wrap:anywhere] print:block">{checkout}</p>
+    </section>}
+    <p className="text-sm text-slate-600">{bank || crypto || checkout
+      ? "Klexford will update this invoice when payment is confirmed."
+      : "Please contact your Klexford project lead for payment instructions."}</p>
+  </section>;
+}
 
 export function InvoiceView() {
   const { id = "" } = useParams();
@@ -23,8 +70,6 @@ export function InvoiceView() {
   const { invoice: inv, settings } = result.data;
   const t = totals(inv);
   const status = invoiceStatus(inv);
-  const bankReady = settings.bank_name && settings.account_name && settings.account_number;
-  const checkout = /^https:\/\//i.test(settings.payment_url) ? settings.payment_url : null;
   const link = invoiceLink(id);
   async function copy() {
     try { await navigator.clipboard.writeText(link); setCopied("Copied"); }
@@ -62,27 +107,17 @@ export function InvoiceView() {
               <div className="flex justify-between"><dt>Subtotal</dt><dd>{money(t.subtotal, inv.currency)}</dd></div>
               {inv.discount > 0 && <div className="flex justify-between"><dt>Discount</dt><dd>-{money(inv.discount, inv.currency)}</dd></div>}
               {inv.tax_rate > 0 && <div className="flex justify-between"><dt>Tax ({inv.tax_rate}%)</dt><dd>{money(t.tax, inv.currency)}</dd></div>}
-              <div className="flex justify-between border-t border-slate-200 pt-3 text-xl font-bold"><dt>Invoice total</dt><dd className="text-brand-600">{money(t.total, inv.currency)}</dd></div>
+              <div className="flex justify-between gap-2 border-t border-slate-200 pt-3 text-xl font-bold"><dt>Invoice total</dt><dd className="text-right text-brand-600">{money(t.total, inv.currency, "code")}</dd></div>
             </dl>
           </div>
           {inv.notes && <p className="mx-8 mt-8 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">{inv.notes}</p>}
-          <div className="p-8 print:hidden">
+          <div className="p-5 sm:p-8">
             {inv.status === "paid" ? (
               <div className="rounded-2xl bg-emerald-50 p-6 text-center"><CheckCircle2 className="mx-auto text-emerald-600" size={40} /><p className="mt-2 text-lg font-semibold text-emerald-700">Paid — thank you!</p><p className="text-sm text-slate-600">{inv.paid_at && `Payment recorded on ${new Date(inv.paid_at).toLocaleDateString()}.`}</p></div>
             ) : inv.status === "cancelled" || inv.status === "draft" ? (
               <p className="rounded-xl bg-slate-100 p-4 text-center text-sm text-slate-500">This invoice is not open for payment.</p>
             ) : (
-              <section className="space-y-4">
-                <h2 className="font-semibold">Payment instructions</h2>
-                {checkout && <a href={checkout} target="_blank" rel="noopener noreferrer" className="btn-primary"><CreditCard size={16} />Open payment provider</a>}
-                {bankReady && <div className="rounded-xl bg-slate-50 p-5 text-sm">
-                  <p>Bank · <strong>{settings.bank_name}</strong></p>
-                  <p>Account name · <strong>{settings.account_name}</strong></p>
-                  <p>Account number · <strong>{settings.account_number}</strong></p>
-                  <p>Transfer reference · <strong>{inv.number}</strong></p>
-                </div>}
-                <p className="text-sm text-slate-600">{checkout || bankReady ? "Klexford will update this invoice when payment is confirmed." : "Please contact your Klexford project lead for payment instructions."}</p>
-              </section>
+              <PaymentMethods invoice={inv} settings={settings}/>
             )}
           </div>
         </div>

@@ -29,6 +29,15 @@ const admin = uuid(1), alice = uuid(2), bob = uuid(3);
 const cover = alice + '/cover.webp', replacement = alice + '/replacement.png';
 const work = uuid(101), quote = uuid(102), invoice = uuid(201);
 const grants = ['work.manage', 'testimonials.manage', 'invoices.manage', 'inquiries.manage'];
+const legacyBank = {
+  bank_name: 'Existing bank', account_name: 'Existing account', account_number: '00012345',
+  payment_url: 'https://payments.example.test/invoice',
+};
+const paymentMethods = {
+  bank_currency: 'GBP', bank_instructions: 'Include the invoice reference.',
+  crypto_coin: 'USDC', crypto_network: 'Polygon', crypto_address: 'test-wallet',
+  crypto_instructions: 'Use the listed network.',
+};
 const newObject = "insert into storage.objects(bucket_id,name) values ('portfolio-media',$1)";
 const intake = "select record_inquiry($1,'project','Client','client@example.test',$2,'test-source')";
 const insertUser = 'insert into auth.users values($1,$2,$3)';
@@ -48,7 +57,12 @@ test('workspace database authorization', async t => {
 
   await db.exec(infrastructure);
   await rows(insertUser, [admin, 'admin@example.test', { role: 'admin' }]);
-  for (const file of (await readdir(migrations)).filter(file => file.endsWith('.sql')).sort()) {
+  const [initial, ...upgrades] = (await readdir(migrations)).filter(file => file.endsWith('.sql')).sort();
+  await db.exec(await readFile(new URL(initial, migrations), 'utf8'));
+  // Upgrade a previously configured agency without guessing its bank currency.
+  await rows('update payment_settings set bank_name=$1, account_name=$2, account_number=$3, payment_url=$4 where id=1',
+    [legacyBank.bank_name, legacyBank.account_name, legacyBank.account_number, legacyBank.payment_url]);
+  for (const file of upgrades) {
     await db.exec(await readFile(new URL(file, migrations), 'utf8'));
   }
 
@@ -130,10 +144,18 @@ test('workspace database authorization', async t => {
 
   await t.test('restricts billing, payment settings and issued invoice links', async () => {
     await as('authenticated', admin);
-    await rows("update payment_settings set bank_name='Bank' where id=1");
+    assert.deepEqual(await rows('select bank_name,account_name,account_number,payment_url,bank_currency,crypto_coin from payment_settings'),
+      [{ ...legacyBank, bank_currency: '', crypto_coin: '' }]);
+    await denied("update payment_settings set bank_currency='dollars'", [], '23514');
+    await denied("update payment_settings set crypto_coin='USDC' where id=1", [], '23514');
+    const paymentEdit = 'update payment_settings set bank_currency=$1,bank_instructions=$2,crypto_coin=$3,crypto_network=$4,crypto_address=$5,crypto_instructions=$6 where id=1 returning id';
+    const paymentValues = [paymentMethods.bank_currency, paymentMethods.bank_instructions, paymentMethods.crypto_coin,
+      paymentMethods.crypto_network, paymentMethods.crypto_address, paymentMethods.crypto_instructions];
+    assert.equal(await count(paymentEdit, paymentValues), 1);
     await rows("update site_settings set agency_name='Team' where id=true");
     await as('authenticated', alice);
     assert.equal(await count('select * from payment_settings'), 0);
+    assert.equal(await count(paymentEdit, paymentValues), 0);
     assert.equal(await count("update site_settings set agency_name='Other' returning id"), 0);
     const items = JSON.stringify([{ description: 'Work', qty: 1, rate: 10 }]);
     const [receipt] = await rows(`
@@ -143,6 +165,7 @@ test('workspace database authorization', async t => {
     assert.equal(receipt.owner_name, 'Alice');
     await as('anon');
     assert.equal(await value('select get_shared_invoice($1)', [receipt.share_token]), null);
+    await denied('select crypto_address from payment_settings');
     await denied('select * from invoices');
     await as('authenticated', bob);
     assert.equal(await count('select id from invoices'), 0);
@@ -157,11 +180,22 @@ test('workspace database authorization', async t => {
     assert.deepEqual(await balances(), [{ currency: 'USD', paid: '0', outstanding: '0', overdue: '8.40' }]);
     await as('anon');
     await denied('select * from get_invoice_balances()');
+    assert.equal(await value('select get_shared_invoice($1)', [invoice]), null);
     const shared = await value('select get_shared_invoice($1)', [receipt.share_token]);
     assert.equal(shared.invoice.number, receipt.number);
     assert.equal(shared.invoice.share_token, undefined);
-    assert.equal(shared.settings.bank_name, 'Bank');
+    assert.deepEqual(shared.settings, { ...legacyBank, ...paymentMethods });
     await as('authenticated', admin);
+    await rows("update invoices set status='cancelled' where id=$1", [invoice]);
+    await as('anon');
+    assert.equal(await value('select get_shared_invoice($1)', [receipt.share_token]), null);
+    await as('authenticated', admin);
+    await rows("update invoices set status='sent' where id=$1", [invoice]);
+    await rows("update payment_settings set crypto_coin='',crypto_network='',crypto_address='',crypto_instructions='' where id=1");
+    const cleared = await value('select get_shared_invoice($1)', [receipt.share_token]);
+    assert.equal(cleared.settings.crypto_address, '');
+    assert.equal(cleared.invoice.currency, 'USD');
+    assert.equal(cleared.settings.bank_currency, 'GBP');
     assert.ok(await value("update invoices set status='paid' where id=$1 returning paid_at", [invoice]));
     assert.deepEqual(await balances(), [{ currency: 'USD', paid: '8.40', outstanding: '0', overdue: '0' }]);
     assert.equal(await count("update invoices set status='sent' returning id"), 0);

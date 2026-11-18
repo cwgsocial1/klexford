@@ -15,7 +15,18 @@ export interface Inquiry {
   id: string; kind: "project" | "visibility" | "expert"; name: string; email: string;
   data: Record<string, string>; created_at: string; status: "new" | "contacted" | "closed";
 }
-export interface PaymentSettings { bank_name: string; account_name: string; account_number: string; payment_url: string }
+export interface PaymentSettings {
+  bank_name: string;
+  account_name: string;
+  account_number: string;
+  bank_currency: string;
+  bank_instructions: string;
+  crypto_coin: string;
+  crypto_network: string;
+  crypto_address: string;
+  crypto_instructions: string;
+  payment_url: string;
+}
 export interface SiteSettings { agency_name: string; contact_email: string }
 export const currencies = ["USD", "NGN", "GBP", "EUR", "CAD"];
 export function totals(i: InvoiceFields) {
@@ -24,7 +35,17 @@ export function totals(i: InvoiceFields) {
   const tax = taxable * i.tax_rate / 100;
   return { subtotal, tax, total: taxable + tax };
 }
-export const money = (value: number, currency: string) => new Intl.NumberFormat("en", { style: "currency", currency }).format(value);
+export const money = (value: number, currency: string, currencyDisplay: "symbol" | "code" = "symbol") =>
+  new Intl.NumberFormat("en", { style: "currency", currency, currencyDisplay }).format(value);
+export function paymentLink(value: string): string | null {
+  if (!value || !/^https:\/\//i.test(value) || /\s/.test(value)) return null;
+  try {
+    const parsed = new URL(value);
+    return parsed.hostname && !parsed.username && !parsed.password ? parsed.href : null;
+  } catch {
+    return null;
+  }
+}
 export const invoiceStatus = (invoice: Invoice) => invoice.status === "sent" && invoice.due_date < new Date().toISOString().slice(0, 10) ? "overdue" : invoice.status;
 export const invoiceLink = (token: string) => new URL("/invoice/" + token, window.location.origin).href;
 export function database() {

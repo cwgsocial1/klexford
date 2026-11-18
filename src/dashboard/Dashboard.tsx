@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowUpRight, BriefcaseBusiness, Check, CheckCircle2, Copy, Eye, FileText, Inbox, MessageSquareQuote, Pencil, Plus, Trash2 } from "lucide-react";
 import { field, Label } from "../components/ui";
 import { usePortal, type Permission } from "./PortalContext";
-import { database, invoiceLink, invoiceStatus, money, totals, useWorkspaceData, type Inquiry, type InvoiceStatus, type PaymentSettings, type SiteSettings, type WorkspaceInvoice } from "../lib/operations";
+import { database, invoiceLink, invoiceStatus, money, paymentLink, totals, useWorkspaceData, type Inquiry, type InvoiceStatus, type PaymentSettings, type SiteSettings, type WorkspaceInvoice } from "../lib/operations";
 export { InvoiceEditor } from "./InvoiceEditor";
 export { InvoiceView } from "./ClientInvoice";
 
@@ -213,19 +213,71 @@ export function SettingsAdmin() {
   });
   return <div className="max-w-2xl space-y-6"><h1>Settings</h1>
     {read.data ? <>
-      <SettingsForm title="Website details" table="site_settings" initial={read.data.site} fields={[
+      <SettingsForm title="Website details" table="site_settings" initial={read.data.site} groups={[{ fields: [
         { key: "agency_name", title: "Agency name", required: true, maxLength: 100 },
         { key: "contact_email", title: "Public contact email", type: "email", required: true, maxLength: 254 },
-      ]}/>
-      <SettingsForm title="Invoice payment instructions" table="payment_settings" initial={read.data.payment} fields={[
-        { key: "bank_name", title: "Bank name" }, { key: "account_name", title: "Account name" },
-        { key: "account_number", title: "Account number" }, { key: "payment_url", title: "Hosted payment link", type: "url" },
+      ] }]}/>
+      <SettingsForm title="Invoice payment methods" table="payment_settings" initial={read.data.payment} groups={[
+        { title: "Bank transfer", fields: [
+          { key: "bank_name", title: "Bank name" },
+          { key: "bank_currency", title: "Bank account currency", placeholder: "e.g. NGN", maxLength: 3 },
+          { key: "account_name", title: "Account name" },
+          { key: "account_number", title: "Account number or IBAN" },
+          { key: "bank_instructions", title: "Additional transfer details (optional)", type: "textarea", placeholder: "Routing number, SWIFT/BIC or other transfer instructions", maxLength: 1000 },
+        ] },
+        { title: "Crypto payment", fields: [
+          { key: "crypto_coin", title: "Coin or token", placeholder: "e.g. USDC", maxLength: 60 },
+          { key: "crypto_network", title: "Network", placeholder: "e.g. Ethereum", maxLength: 100 },
+          { key: "crypto_address", title: "Wallet address", maxLength: 512, fullWidth: true },
+          { key: "crypto_instructions", title: "Additional crypto details (optional)", type: "textarea", placeholder: "Memo, destination tag or payment instructions", maxLength: 1000 },
+        ] },
+        { title: "Payment link", fields: [
+          { key: "payment_url", title: "Hosted payment link", type: "url", fullWidth: true },
+        ] },
       ]}/>
     </> : <FetchState error={read.error} retry={read.reload}/>}
   </div>;
 }
-type FieldSpec = { key: keyof (PaymentSettings & SiteSettings); title: string; type?: string; required?: boolean; maxLength?: number };
-function SettingsForm({ title, table, initial, fields }: { title: string; table: "site_settings" | "payment_settings"; initial: Versioned<SiteSettings | PaymentSettings>; fields: FieldSpec[] }) {
+
+type FieldSpec = {
+  key: keyof (PaymentSettings & SiteSettings);
+  title: string;
+  type?: string;
+  required?: boolean;
+  maxLength?: number;
+  placeholder?: string;
+  fullWidth?: boolean;
+};
+type SettingsGroup = { title?: string; fields: FieldSpec[] };
+type SettingsFormProps = {
+  title: string;
+  table: "site_settings" | "payment_settings";
+  initial: Versioned<Partial<PaymentSettings & SiteSettings>>;
+  groups: SettingsGroup[];
+};
+
+function preparePaymentMethods(values: Record<string, string>) {
+  values.bank_currency = values.bank_currency.toUpperCase();
+  const bank = [values.bank_name, values.account_name, values.account_number];
+  if ([...bank, values.bank_currency, values.bank_instructions].some(Boolean) && !bank.every(Boolean)) {
+    return "Enter the bank name, account name and account number, or clear the bank transfer fields.";
+  }
+  if (values.bank_currency && !/^[A-Z]{3}$/.test(values.bank_currency)) {
+    return "Enter a three-letter bank currency code, such as NGN or USD.";
+  }
+  const crypto = [values.crypto_coin, values.crypto_network, values.crypto_address];
+  if ([...crypto, values.crypto_instructions].some(Boolean) && !crypto.every(Boolean)) {
+    return "Enter the coin, network and wallet address, or clear the crypto payment fields.";
+  }
+  if (values.payment_url) {
+    const url = paymentLink(values.payment_url);
+    if (!url) return "Enter a valid HTTPS payment link.";
+    values.payment_url = url;
+  }
+  return "";
+}
+
+function SettingsForm({ title, table, initial, groups }: SettingsFormProps) {
   const [version, setVersion] = useState(initial.updated_at);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -234,11 +286,10 @@ function SettingsForm({ title, table, initial, fields }: { title: string; table:
     if (busy) return;
     setMessage("");
     const form = new FormData(e.currentTarget);
-    const values = Object.fromEntries(fields.map(f => [f.key, String(form.get(f.key) || "").trim()]));
+    const values = Object.fromEntries(groups.flatMap(g => g.fields.map(f => [f.key, String(form.get(f.key) || "").trim()])));
     if (table === "payment_settings") {
-      const bank = [values.bank_name, values.account_name, values.account_number];
-      if (bank.some(Boolean) && !bank.every(Boolean)) { setMessage("Complete all three bank details, or clear all three to remove bank transfers."); return; }
-      if (values.payment_url && !/^https:\/\//i.test(values.payment_url)) { setMessage("Use an HTTPS payment link."); return; }
+      const feedback = preparePaymentMethods(values);
+      if (feedback) { setMessage(feedback); return; }
     }
     setBusy(true);
     try {
@@ -248,9 +299,21 @@ function SettingsForm({ title, table, initial, fields }: { title: string; table:
     } catch { setMessage("The changes could not be saved. Reload the settings to check for newer changes."); }
     finally { setBusy(false); }
   }
-  return <form onSubmit={save} className="access-panel grid gap-4"><h2>{title}</h2>
-    {fields.map(f => <label key={f.key}><Label>{f.title}</Label><input name={f.key} type={f.type || "text"} required={f.required} maxLength={f.maxLength}
-      defaultValue={String(initial[f.key as keyof typeof initial] || "")} className={field} onChange={() => setMessage("")}/></label>)}
+  return <form onSubmit={save} onChange={() => setMessage("")} className="access-panel grid gap-5">
+    <div><h2>{title}</h2>{table === "payment_settings" && <p className="mt-1 text-sm text-slate-600">These details appear on unpaid invoices. Clear a method’s fields to remove it.</p>}</div>
+    {groups.map(group => <fieldset key={group.title || title} disabled={busy} className={group.title ? "min-w-0 rounded-xl border border-slate-200 p-4" : "min-w-0"}>
+      {group.title && <legend className="px-1 text-sm font-semibold">{group.title}</legend>}
+      <div className={group.title ? "grid gap-4 sm:grid-cols-2" : "grid gap-4"}>
+        {group.fields.map(f => {
+          const props = { id: table + "-" + f.key, name: f.key, required: f.required, maxLength: f.maxLength, placeholder: f.placeholder, defaultValue: initial[f.key] || "", className: field };
+          return <div key={f.key} className={f.type === "textarea" || f.fullWidth ? "min-w-0 sm:col-span-2" : "min-w-0"}>
+            <label htmlFor={props.id}><Label>{f.title}</Label></label>
+            {f.type === "textarea" ? <textarea {...props} rows={3}/> : <input {...props} type={f.type || "text"}
+              onChange={f.key === "bank_currency" ? e => { e.currentTarget.value = e.currentTarget.value.toUpperCase(); } : undefined}/>}
+          </div>;
+        })}
+      </div>
+    </fieldset>)}
     <button disabled={busy} className="btn-primary w-fit">{busy ? "Saving…" : "Save changes"}</button>
     {message && <p role="status" className="text-sm">{message}</p>}
   </form>;
