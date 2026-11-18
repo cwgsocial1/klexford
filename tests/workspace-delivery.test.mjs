@@ -98,3 +98,19 @@ test("POST-only invitation clients retain authorization through the compatibilit
   assert.deepEqual(JSON.parse(forwarded.body), options.body);
   assert.equal(forwarded.redirect, "error");
 });
+
+test("the relay returns private invite links only for successful link creation", async (t) => {
+  const fixture = "https://project.example.test/auth/v1/verify?type=invite&token=fake";
+  let status = 201;
+  t.mock.method(globalThis, "fetch", () => Response.json({ message: "Fixture", inviteUrl: fixture }, { status }));
+  const options = {
+    method: "POST",
+    body: { name: "Fixture", email: "expert@example.test", delivery: "link" },
+    headers: { authorization: "Bearer session-fixture" },
+  };
+  assert.equal((await call(invitations, production, options)).body.inviteUrl, fixture);
+  status = 403;
+  assert.equal((await call(invitations, production, options)).body.inviteUrl, undefined);
+  status = 201;
+  assert.equal((await call(invitations, production, { ...options, body: { ...options.body, delivery: "email" } })).body.inviteUrl, undefined);
+});

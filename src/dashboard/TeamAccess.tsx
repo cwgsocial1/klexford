@@ -98,6 +98,7 @@ export function TeamAccess() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState("");
+  const [privateInvite, setPrivateInvite] = useState<{ email: string; url: string } | null>(null);
   const [loadError, setLoadError] = useState("");
   const load = useCallback(async () => {
     if (!supabase) return;
@@ -119,14 +120,21 @@ export function TeamAccess() {
   }, []);
   useEffect(() => {
     void load();
+    const clearPrivateInvite = () => setPrivateInvite(null);
+    window.addEventListener("pagehide", clearPrivateInvite);
+    return () => window.removeEventListener("pagehide", clearPrivateInvite);
   }, [load]);
   async function invite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabase || sending) return;
     const form = event.currentTarget;
     const values = new FormData(form);
+    const submitter = (event.nativeEvent as SubmitEvent).submitter;
+    const createLink = submitter instanceof HTMLButtonElement && submitter.value === "link";
+    const email = String(values.get("email") || "").trim();
     setSending(true);
     setMessage("");
+    setPrivateInvite(null);
     try {
       const { data } = await supabase.auth.getSession();
       if (!data.session) {
@@ -140,11 +148,12 @@ export function TeamAccess() {
         method: "POST",
         redirect: "error",
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + data.session.access_token },
-        body: JSON.stringify({ name: values.get("name"), email: values.get("email") }),
+        body: JSON.stringify({ name: values.get("name"), email, ...(createLink && { delivery: "link" }) }),
       });
       const result = await res.json();
       setMessage(result.message || "Could not send the invitation.");
       if (res.ok) {
+        if (createLink && typeof result.inviteUrl === "string") setPrivateInvite({ email, url: result.inviteUrl });
         form.reset();
         await load();
       }
@@ -162,7 +171,7 @@ export function TeamAccess() {
       <div className="grid gap-5 mt-7 lg:grid-cols-2 items-start">
         <section className="access-panel">
           <h2>Invite an expert</h2>
-          <form onSubmit={invite} className="grid gap-4 mt-5">
+          <form onSubmit={invite} onChange={() => setPrivateInvite(null)} className="grid gap-4 mt-5">
             <label>
               <Label>Name</Label>
               <input className={field} name="name" required maxLength={160} />
@@ -171,10 +180,36 @@ export function TeamAccess() {
               <Label>Email</Label>
               <input className={field} name="email" type="email" required maxLength={254} />
             </label>
-            <button className="btn-primary justify-self-start" disabled={sending}>
-              {sending ? "Sending…" : "Send invitation"}
-            </button>
+            <div className="flex flex-wrap items-center gap-4">
+              <button type="submit" className="btn-primary" disabled={sending}>
+                {sending ? "Please wait…" : "Send invitation"}
+              </button>
+              <button type="submit" name="delivery" value="link" className="line-link" disabled={sending}>
+                Create private link
+              </button>
+            </div>
           </form>
+          {privateInvite && (
+            <section className="mt-6 grid gap-3 rounded-lg border border-slate-200 p-4" aria-label="Private invitation">
+              <p>Share this one-time link privately with <strong>{privateInvite.email}</strong>. Anyone who has it can accept the invitation.</p>
+              <label>
+                <Label>Private invitation link</Label>
+                <input className={field} value={privateInvite.url} readOnly autoComplete="off"
+                  onFocus={event => event.currentTarget.select()} />
+              </label>
+              <div className="flex items-center gap-4">
+                <button type="button" className="btn-primary" onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(privateInvite.url);
+                    setMessage("Invitation link copied.");
+                  } catch {
+                    setMessage("Select the invitation link and copy it manually.");
+                  }
+                }}>Copy link</button>
+                <button type="button" className="line-link" onClick={() => { setPrivateInvite(null); setMessage(""); }}>Dismiss</button>
+              </div>
+            </section>
+          )}
         </section>
         <section className="access-panel">
           <div className="flex justify-between items-center gap-4">

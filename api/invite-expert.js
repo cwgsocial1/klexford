@@ -35,7 +35,11 @@ export default async function invitations(req, res, env = process.env) {
       signal: AbortSignal.timeout(12000),
     });
     const reply = await response.json();
-    return res.status(response.status).json({ message: reply.message });
+    const payload = { message: reply.message };
+    if (response.status === 201 && typeof reply.inviteUrl === "string" && JSON.parse(body)?.delivery === "link") {
+      payload.inviteUrl = reply.inviteUrl;
+    }
+    return res.status(response.status).json(payload);
   } catch {
     return res.status(503).json({ message: "The invitation service is temporarily unavailable." });
   }

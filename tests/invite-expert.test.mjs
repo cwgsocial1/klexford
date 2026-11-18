@@ -78,3 +78,81 @@ test("only an active administrator can send an expert invitation", async (t) => 
   assert.equal(invitation.body.email, body.email);
   assert.deepEqual(invitation.body.data, { display_name: body.name });
 });
+
+test("manual links are issued only to administrators for brand-new invitees and trusted redirects", async (t) => {
+  const project = "https://project.example.test";
+  const origin = "https://studio.example.test";
+  const redirectTo = origin + "/account/password";
+  const email = "new-expert@example.test";
+  const action = new URL("/auth/v1/verify", project);
+  action.search = new URLSearchParams({ token: "fake-test-token", type: "invite", redirect_to: redirectTo });
+  let sessionUser = { role: "expert", active: true };
+  let exists = false;
+  let calls = 0;
+  let returnedUrl = action.href;
+  let newUser = true;
+  t.mock.method(globalThis, "fetch", async (url, init) => {
+    const target = new URL(url);
+    assert.equal(target.origin, project);
+    if (target.pathname === "/auth/v1/user") {
+      return Response.json({ id: "10000000-0000-4000-8000-000000000001", email: "owner@example.test" });
+    }
+    if (target.pathname === "/rest/v1/profiles") {
+      return Response.json(target.searchParams.has("id") ? [sessionUser] : exists ? [{ id: "existing" }] : []);
+    }
+    assert.equal(target.pathname, "/auth/v1/admin/generate_link");
+    const input = JSON.parse(init.body);
+    assert.equal(input.type, "invite");
+    assert.equal(input.email, email);
+    assert.equal(target.searchParams.get("redirect_to"), redirectTo);
+    calls++;
+    return Response.json({
+      email,
+      user_metadata: newUser ? input.data : {},
+      action_link: returnedUrl,
+      hashed_token: "fake-test-token",
+      verification_type: "invite",
+      redirect_to: redirectTo,
+    });
+  });
+  async function invite() {
+    const res = {
+      setHeader() {},
+      status(code) { this.code = code; return this; },
+      json(data) { this.body = data; },
+    };
+    await inviteExpert({
+      method: "POST", body: { delivery: "link", email, name: "Expert" },
+      headers: { authorization: "Bearer session-fixture", host: new URL(origin).host, origin, "content-type": "application/json" },
+    }, res, { SUPABASE_URL: project, SUPABASE_SECRET_KEY: "fixture", PUBLIC_SITE_ORIGIN: origin });
+    return res;
+  }
+  assert.equal((await invite()).code, 403);
+  sessionUser = { role: "admin", active: true };
+  exists = true;
+  assert.equal((await invite()).code, 409);
+  assert.equal(calls, 0);
+  exists = false;
+  newUser = false;
+  const raced = await invite();
+  assert.equal(raced.code, 409);
+  assert.equal(raced.body.inviteUrl, undefined);
+  newUser = true;
+  for (const invalid of [
+    action.href.replace(project, "https://wrong.example.test"),
+    action.href.replace("type=invite", "type=recovery"),
+    action.href.replace("/verify?", "/other?"),
+    action.href + "&redirect_to=https://wrong.example.test",
+    action.href.replace("https://", "http://"),
+  ]) {
+    returnedUrl = invalid;
+    const failed = await invite();
+    assert.equal(failed.code, 502);
+    assert.equal(failed.body.inviteUrl, undefined);
+  }
+  returnedUrl = action.href;
+  const ready = await invite();
+  assert.equal(ready.code, 201);
+  assert.equal(ready.body.inviteUrl, action.href);
+  assert.deepEqual(Object.keys(ready.body).sort(), ["inviteUrl", "message"]);
+});

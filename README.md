@@ -49,7 +49,7 @@ In Supabase **Authentication → URL Configuration**, set the site URL and allow
 
 ## Use the workspaces
 
-- **Administrators** sign in at `/admin`. Under **Team access**, invite an expert by email, select the expert, enable workspace access, select their permissions and save. New accounts start inactive. Administrators can also curate work and testimonials, review inquiries, handle invoices, and edit public contact and payment settings.
+- **Administrators** sign in at `/admin`. Under **Team access**, invite an expert by email, or choose **Create private link** for a new expert and send the one-time link privately to that person. Select the expert, enable workspace access, choose their permissions and save. New accounts start inactive. Administrators can also curate work and testimonials, review inquiries, handle invoices, and edit public contact and payment settings.
 - **Experts** sign in at `/expert`. Each expert can draft their own portfolio projects and testimonials when granted access. Separate publishing permissions control whether they can publish, change or withdraw public entries. Invoice access is scoped to their own invoices. Inquiry access grants visibility into submitted briefs across the team.
 - **Visitors** see published projects on the homepage and `/work`. Each project has its own shareable page. Published testimonials appear on the homepage. Illustrative projects are labelled separately. To remove a published entry from the website while keeping it in the workspace, save it as a draft.
 - **Clients** can open the private share link for an issued invoice. Administrators can record confirmed payments in the portal.

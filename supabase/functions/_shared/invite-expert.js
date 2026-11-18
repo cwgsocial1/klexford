@@ -13,6 +13,24 @@ function invitationOrigin(env, requestOrigin) {
   return null;
 }
 
+function checkedInviteUrl(properties, projectUrl, redirectTo) {
+  if (properties?.verification_type !== "invite" || !properties.hashed_token) return null;
+  try {
+    const action = new URL(properties.action_link);
+    const expected = new URL("/auth/v1/verify", projectUrl);
+    if (action.protocol !== "https:" || action.origin !== expected.origin || action.pathname !== expected.pathname ||
+        action.username || action.password || properties.redirect_to !== redirectTo) return null;
+    const params = new URLSearchParams({ token: properties.hashed_token, type: "invite", redirect_to: redirectTo });
+    for (const [name, value] of params) {
+      if (action.searchParams.get(name) !== value || action.searchParams.getAll(name).length !== 1) return null;
+    }
+    expected.search = params.toString();
+    return expected.href;
+  } catch {
+    return null;
+  }
+}
+
 export default async function inviteExpert(req, res, env = process.env) {
   res.setHeader("Cache-Control", "no-store");
   const fail = (code, message) => res.status(code).json({ message });
@@ -35,6 +53,8 @@ export default async function inviteExpert(req, res, env = process.env) {
   } catch {}
   const email = typeof input?.email === "string" ? input.email.trim().toLowerCase() : "";
   const name = typeof input?.name === "string" ? input.name.trim() : "";
+  const delivery = input?.delivery ?? "email";
+  if (delivery !== "email" && delivery !== "link") return fail(400, "Choose an invitation delivery method.");
   if (!name || name.length > 160 || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
     return fail(400, "Enter a name and a valid email address.");
 
@@ -68,9 +88,27 @@ export default async function inviteExpert(req, res, env = process.env) {
     if (lookupError) return fail(503, "Could not check the team directory.");
     if (existing?.length)
       return fail(409, "This account already exists. Manage its access in the team directory.");
+    const redirectTo = origin + "/account/password";
+    if (delivery === "link") {
+      // Auth can also regenerate invites for unconfirmed users. Only a newly
+      // created user receives the metadata supplied by this invitation.
+      const requestId = crypto.randomUUID();
+      const { data, error } = await db.auth.admin.generateLink({
+        type: "invite",
+        email,
+        options: { redirectTo, data: { display_name: name, invite_request_id: requestId } },
+      });
+      if (error) return fail(error.status === 429 ? 429 : 502, "Supabase could not create the invitation link.");
+      if (data.user?.email?.toLowerCase() !== email || data.user.email_confirmed_at ||
+          data.user.user_metadata?.invite_request_id !== requestId)
+        return fail(409, "This account already exists. Manage its access in the team directory.");
+      const inviteUrl = checkedInviteUrl(data.properties, url, redirectTo);
+      if (!inviteUrl) return fail(502, "Check the project’s Auth URL and invitation redirect settings.");
+      return res.status(201).json({ inviteUrl, message: "Invitation link created. Choose this expert’s access below." });
+    }
     const { error: inviteError } = await db.auth.admin.inviteUserByEmail(email, {
       data: { display_name: name },
-      redirectTo: origin + "/account/password",
+      redirectTo,
     });
     if (inviteError)
       return fail(
