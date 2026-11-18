@@ -57,21 +57,12 @@
 
   .masthead .nav-panel a:is(:hover, :focus-visible) { translate: 3px 0; }
 
-  /* Animate the page introduction while keeping the rest of the page and its
-     anchor destinations in their final positions. */
-  .route-arrival .page-intro > .container-x {
-    animation: kx-route-in 380ms cubic-bezier(.22,.8,.24,1);
-  }
-
   @keyframes kx-panel-in {
     from { opacity: 0; transform: translateY(-7px) scale(.985); }
     to { opacity: 1; transform: translateY(0) scale(1); }
   }
 
-  @keyframes kx-route-in {
-    from { opacity: .35; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
+
 }
 
 @media (max-width: 960px) and (prefers-reduced-motion: no-preference) {
@@ -79,4 +70,50 @@
     transform-origin: top right;
     animation: kx-panel-in 220ms cubic-bezier(.22,.8,.24,1) both;
   }
+}
+
+
+.reading-progress {
+  pointer-events: none;
+  position: fixed;
+  z-index: 45;
+  inset: 0 0 auto;
+  height: 3px;
+}
+.reading-progress > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ac3220, #ff7652);
+  transform: scaleX(var(--read, 0));
+  transform-origin: left;
+}
+.route-curtain {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  opacity: 0;
+  transform: translateX(108%);
+  background: linear-gradient(100deg, transparent 4%, #f6f5f4 28%, #f4f2f2 73%, #efb9ab 93%, transparent 100%);
+}
+.title-word { display: inline-block; }
+@media (prefers-reduced-motion: no-preference) {
+  .route-arrival .title-word {
+    overflow: clip;
+    vertical-align: bottom;
+    padding-bottom: .11em;
+    margin-bottom: -.11em;
+  }
+  .route-arrival .title-word > span {
+    display: inline-block;
+    animation: kx-word-in 510ms cubic-bezier(.16,.78,.24,1) backwards;
+    animation-delay: calc(var(--word-step, 0) * 29ms);
+  }
+  @keyframes kx-word-in {
+    from { transform: translateY(80%) rotate(2deg); opacity: .14; }
+    to { transform: translateY(0) rotate(0); opacity: 1; }
+  }
+}
+@media print {
+  .reading-progress, .route-curtain { display: none; }
 }

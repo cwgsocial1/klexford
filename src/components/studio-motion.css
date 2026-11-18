@@ -84,3 +84,87 @@
 @keyframes studio-bob { from { translate:0 -3px; rotate:-3deg; } to { translate:0 4px; rotate:3deg; } }
 @keyframes studio-cue { 0%,65%,100% { transform:translateY(-2px); } 35% { transform:translateY(3px); } }
 @media(prefers-reduced-motion:reduce){ .scene-playback {display:none;} }
+
+/* The headline stays a single accessible name as its printed words rise into view. */
+.kinetic-word { display:inline-block; vertical-align:baseline; }
+.kinetic-word>span { display:inline-block; }
+.studio-scene { --scene-travel:0; }
+.scene-cursor-light { display:none; }
+
+@media(prefers-reduced-motion:no-preference) {
+  .studio-scene:not(.scene-paused) .scene-surface {
+    inset:-5% -2.5%;
+    translate:0 calc(var(--scene-travel) * 9%);
+  }
+  .studio-scene:not(.scene-paused) .hero-copy {
+    transform:translate3d(0,calc(var(--scene-travel) * -30px),0);
+  }
+  .studio-scene:not(.scene-paused) .scene-lockup { animation:none; }
+  .studio-scene:not(.scene-paused) .kinetic-word {
+    overflow:hidden; overflow:clip;
+    vertical-align:bottom;
+    padding:.1em .065em .12em; margin:-.1em -.065em -.12em;
+    perspective:700px;
+  }
+  .studio-scene:not(.scene-paused) .kinetic-word>span {
+    transform-origin:center bottom;
+    animation:studio-type-in 700ms var(--word-delay,0ms) cubic-bezier(.16,.84,.24,1) backwards;
+  }
+  .kinetic-word:nth-of-type(2)>span { --word-delay:65ms; }
+  .kinetic-word:nth-of-type(3)>span { --word-delay:125ms; }
+  .kinetic-word:nth-of-type(4)>span { --word-delay:185ms; }
+  .studio-scene .studio-objects {
+    background:none; box-shadow:none; isolation:isolate;
+  }
+  .studio-objects::before {
+    content:""; position:absolute; inset:0; z-index:-1; pointer-events:none;
+    background:radial-gradient(ellipse at 25% 15%, #ffa65b99, transparent 48%),
+      linear-gradient(120deg,#aa190c,#ff4d29 42%,#ff8457 60%,#c82914 84%);
+    background-size:155% 145%;
+    border-radius:55% 45% 47% 53% / 68% 62% 38% 32%;
+    box-shadow:inset 0 -3px 7px #a820263a,inset 0 2px 4px #ffccb07a,0 .1em .2em #c53f1e4d;
+    transition:scale 300ms ease;
+  }
+  .studio-scene:not(.scene-paused) .studio-objects::before {
+    animation:studio-liquid 6s ease-in-out infinite alternate;
+  }
+  .studio-objects[data-discipline]::before { scale:1.04 .94; }
+  .studio-scene.scene-offscreen .studio-objects::before { animation-play-state:paused; }
+  .studio-scene:not(.scene-paused) .hero-actions a { transition:transform 180ms ease,box-shadow 180ms ease; }
+  .studio-scene:not(.scene-paused) .hero-actions a:focus-visible { box-shadow:0 0 0 5px #fff8; }
+}
+@media(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){
+  .scene-cursor-light {
+    position:absolute; z-index:-1; display:block; width:clamp(180px,27vw,450px); aspect-ratio:1;
+    left:calc(50% + var(--scene-x) * 50%); top:calc(50% + var(--scene-y) * 50%);
+    transform:translate(-50%,-50%); pointer-events:none;
+    background:radial-gradient(ellipse closest-side,#fff9,#ffe4d729 50%,transparent);
+    opacity:0; transition:opacity 220ms ease;
+  }
+  .scene-tracking:not(.scene-paused) .scene-cursor-light { opacity:.78; }
+}
+@keyframes studio-type-in {
+  from { opacity:.12; transform:translateY(95%) rotateX(-46deg); }
+  to { opacity:1; transform:translateY(0) rotateX(0); }
+}
+@keyframes studio-liquid {
+  from { border-radius:53% 47% 43% 57% / 64% 49% 51% 36%; background-position:15% 50%; }
+  to { border-radius:41% 59% 56% 44% / 41% 66% 34% 59%; background-position:95% 45%; }
+}
+
+/* A sweep of ink follows the first scroll into the studio introduction. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion:no-preference) and (forced-colors:none) {
+    #studio-intro { view-timeline-name:--studio-intro; }
+    #studio-title {
+      color:#27272a;
+      background:linear-gradient(108deg,#242427 0% 43%,#ab3826 49%,#67676c 56% 100%) 100% 50% / 270% 100%;
+      background-clip:text;
+      -webkit-text-fill-color:transparent;
+      animation:studio-ink-wipe 1s linear both;
+      animation-timeline:--studio-intro;
+      animation-range:entry 10% cover 60%;
+    }
+    @keyframes studio-ink-wipe { to { background-position:0% 50%; } }
+  }
+}

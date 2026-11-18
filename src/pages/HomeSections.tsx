@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Check, Search } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Img } from "../components/ui";
 import { ProjectInquiryForm } from "../components/ProjectInquiryForm";
-import { audiences, IMG, plans, resources, services, steps, work } from "../data";
+import { audiences, IMG, plans, resources, services, work } from "../data";
 import { casePath, resourcePath } from "../lib/publicPaths";
 import "../home-sections.css";
+import ProcessStory from "./ProcessStory";
 
 function SectionLink({ to, children }: { to: string; children: string }) {
   return <Link className="hs-link" to={to}>{children}<ArrowUpRight size={16} aria-hidden="true" /></Link>;
@@ -29,7 +31,7 @@ function Departments() {
       <div className="hs-head"><h2 id="services-title">Our services</h2><SectionLink to="/services">Compare services</SectionLink></div>
       <div className="hs-services">
         <Link className="hs-service-feature" to={book.route}>
-          <img src="/images/library.jpg" loading="lazy" alt="" />
+          <Img src="/images/library.jpg" loading="lazy" alt="" />
           <div className="hs-feature-top"><span className="hs-glass-label"><BookOpen size={15} />Flagship department</span><ArrowUpRight /></div>
           <div className="hs-feature-copy"><h3>{book.title}</h3><p>Bring a manuscript to publication and plan how it will find its readers.</p></div>
         </Link>
@@ -96,7 +98,7 @@ function SelectedWork() {
         </div>
       </div>
       <div className="hs-work" id="project-reel" ref={track} onScroll={updateEdges}>{projects.map(w => <Link to={casePath(w.title)} key={w.title}>
-        <div className="hs-work-image"><img src={w.image} loading="lazy" alt="" /><span><ArrowUpRight size={19}/></span></div>
+        <div className="hs-work-image"><Img src={w.image} loading="lazy" alt="" /><span><ArrowUpRight size={19}/></span></div>
         <p className="hs-meta">{w.tag} · Illustrative project</p><h3>{w.title}</h3><p>{w.summary}</p>
       </Link>)}</div>
     </section>
@@ -111,19 +113,14 @@ function BookFeature() {
         <h2 id="book-title">Give your readers a way to find you.</h2>
         <p>Start with the genre, the reader and the release date. We shape the launch plan, develop the campaign materials and review how readers respond.</p>
         <Link className="hs-button hs-light-button" to="/book-author-services/book-marketing">Explore book marketing <ArrowRight size={16}/></Link>
-      </div><img src={IMG.book_author_services} alt="Books arranged on shelves" loading="lazy"/></div>
+      </div><Img src={IMG.book_author_services} alt="Books arranged on shelves" loading="lazy"/></div>
     </section>
   );
 }
 
 function Engagements() {
   return <>
-    <section className="hs-wrap hs-pad" id="process" aria-labelledby="process-title">
-      <div className="hs-head"><h2 id="process-title">How we work</h2></div>
-      <ol className="hs-steps">{steps.map(s => <li key={s.n}>
-        <span className="hs-step-number">{s.n}</span><h3>{s.title}</h3><p>{s.desc}</p>
-      </li>)}</ol>
-    </section>
+    <ProcessStory/>
     <section id="ways-to-work" className="hs-wash" aria-labelledby="plans-title"><div className="hs-wrap hs-pad">
       <div className="hs-head"><h2 id="plans-title">Ways to work together</h2><p>We quote each engagement once the scope and deliverables are agreed.</p></div>
       <div className="hs-plans">{plans.map(p => <article key={p.title} className={p.featured ? "hs-plan hs-plan-featured" : "hs-plan"}>
@@ -137,7 +134,7 @@ function Engagements() {
 function StudioAndResources() {
   return <>
     <section id="experts" className="hs-wrap hs-pad hs-team" aria-labelledby="team-title">
-      <img src="/images/studio.jpg" alt="A sunlit studio workspace" loading="lazy"/>
+      <Img src="/images/studio.jpg" alt="A sunlit studio workspace" loading="lazy"/>
       <div><p className="hs-label">Team &amp; experts</p><h2 id="team-title">Who works on your brief?</h2>
         <p>Editors, designers, developers and campaign specialists each own a part of the work. Before a project begins, we agree who will deliver it, who will review it and who you’ll hear from.</p>
         <div className="hs-actions"><SectionLink to="/experts">Explore specialties</SectionLink><SectionLink to="/become-an-expert">Become an expert</SectionLink></div>
@@ -146,7 +143,7 @@ function StudioAndResources() {
     <section id="resources" className="hs-wrap hs-pad hs-top-rule" aria-labelledby="resource-title">
       <div className="hs-head"><h2 id="resource-title">Resources &amp; tools</h2><SectionLink to="/resources">All resources</SectionLink></div>
       <div className="hs-resource-grid"><div className="hs-reading-list">{resources.slice(0, 3).map(r => <Link key={r.title} to={resourcePath(r.title)}>
-        <img src={r.image} alt="" loading="lazy"/><div><small>{r.type}</small><h3>{r.title}</h3></div><ArrowUpRight size={17} aria-hidden="true"/>
+        <Img src={r.image} alt="" loading="lazy"/><div><small>{r.type}</small><h3>{r.title}</h3></div><ArrowUpRight size={17} aria-hidden="true"/>
       </Link>)}</div>
       <div id="visibility" className="hs-visibility"><Search size={25} strokeWidth={1.6} aria-hidden="true"/><h3>Free Visibility Check</h3>
         <p>Share a public book page, author profile or business website for a manual review with up to three observations and two practical next steps.</p>
@@ -174,7 +171,7 @@ export default function HomeSections() {
           observer?.unobserve(target);
         });
       }, { threshold: 0.08 });
-      const panels = root.querySelectorAll(".hs-intro > div, .hs-head, .hs-services > a, .hs-audiences > a, .hs-book-copy, .hs-steps > li, .hs-plans > article, .hs-team > div, .hs-reading-list > a, .hs-visibility, .hs-inquiry > div:first-child");
+      const panels = root.querySelectorAll(".hs-intro > div, .hs-head, .hs-services > a, .hs-audiences > a, .hs-book-copy, .hs-plans > article, .hs-team > div, .hs-reading-list > a, .hs-visibility, .hs-inquiry > div:first-child");
       panels.forEach(el => { if (!el.classList.contains("hs-arrived")) observer?.observe(el); });
     }
 

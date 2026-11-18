@@ -112,7 +112,7 @@ h1,h2,h3 { letter-spacing:-.035em; }
   .footer-grid>div:first-child { grid-column:1/-1; }
 }
 @media(max-width:380px){.hero-copy h1{font-size:47px}.masthead.on-cover .mast-inner{max-width:calc(100% - 19px)}}
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important; animation-duration:.01ms!important; transition-duration:.01ms!important;}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important; animation:none!important; transition:none!important;}}
 @media(max-width:650px) {
   .hero-shell { background-position:64% center; }
   .hero-last-line { display:block; white-space:nowrap; }

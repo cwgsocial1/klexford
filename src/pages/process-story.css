@@ -1,0 +1,81 @@
+.process-layout {
+  display:grid;
+  grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);
+  align-items:start;
+  gap:clamp(32px,7vw,100px);
+}
+.process-frame {
+  position:sticky;
+  top:clamp(18px,12svh,120px);
+  height:clamp(260px,51svh,530px);
+  overflow:hidden;
+  isolation:isolate;
+  border:1px solid #e1dddc;
+  border-radius:24px;
+  background:
+    radial-gradient(ellipse at 84% 23%,#ffded0 0%,transparent 48%),
+    linear-gradient(145deg,#d9d9df 0%,#f2f1f1 46%,#dbdade 100%);
+}
+.process-stack { position:absolute; inset:8% 10% 11%; container-type:size; }
+.process-sheet {
+  position:absolute;
+  left:50%; top:54%;
+  width:min(62%,260px);
+  width:min(64cqw,65cqh);
+  aspect-ratio:.77;
+  transform:translate(-50%,-50%) rotate(-3deg);
+  transform-origin:50% 80%;
+  display:flex; flex-direction:column; justify-content:space-between;
+  overflow:hidden;
+  padding:clamp(12px,3cqh,24px);
+  border:1px solid #ffffffbd;
+  border-radius:4px;
+  box-shadow:0 14px 22px -15px #30273185, inset 2px 0 0 #ffffff4d;
+}
+.sheet-brand { font-size:clamp(10px,3.2cqh,16px); font-weight:700; letter-spacing:-.065em; }
+.sheet-caption { font-size:clamp(13px,5.1cqh,27px); font-weight:550; letter-spacing:-.055em; display:flex; align-items:center; justify-content:space-between; gap:8px; line-height:1.09; }
+.sheet-caption svg { width:1em;height:1em;flex:none; }
+.sheet-graphic { flex:1; display:flex; align-items:center; justify-content:center; position:relative; margin:9% 0; overflow:hidden; }
+.sheet-0 { z-index:4; background:linear-gradient(145deg,#fff,#f7f5ef); color:#2d2c2c; }
+.sheet-0 .sheet-graphic { flex-direction:column; justify-content:center; gap:8%; align-items:flex-start; }
+.sheet-0 .sheet-graphic span { display:block; background:#ce4630; width:86%; height:12%; }
+.sheet-0 .sheet-graphic span:nth-child(2) { width:70%; background:#eb8066; }
+.sheet-0 .sheet-graphic span:last-child { width:51%; background:#f2bca8; }
+.sheet-1 { z-index:3; background:#e45b3e; color:#271d1a; transform:translate(-47%,-56%) rotate(1deg); }
+.sheet-1 .sheet-graphic { background:repeating-linear-gradient(0deg,transparent 0 17%,#ffffff9e 17% 18%),repeating-linear-gradient(90deg,transparent 0 19%,#ffffff9e 19% 20%); }
+.sheet-1 .sheet-graphic span { width:46%; aspect-ratio:1; border-radius:50%; border:2px solid #fff6e8; }
+.sheet-2 { z-index:2; background:linear-gradient(115deg,#262627,#414247); color:#fff7ef; transform:translate(-44%,-62%) rotate(5deg); }
+.sheet-2 .sheet-graphic i { display:block; width:47%; height:90%; border-radius:100%; border:2px solid #ff916f; transform:rotate(25deg); margin:0 -8%; }
+.sheet-3 { z-index:1; background:linear-gradient(145deg,#f5d9bd,#d8a87b); color:#392b25; transform:translate(-41%,-68%) rotate(9deg); }
+.sheet-3 .sheet-graphic svg { width:62%; height:80%; stroke-width:1; }
+.process-meter { position:absolute; left:7%;bottom:6%;width:86%;height:3px;overflow:hidden;border-radius:3px;background:#fff9; }
+.process-meter span { display:block;height:100%;background:#bd412d;transform-origin:left;transform:scaleX(var(--process-progress,0)); }
+.process-step {
+  min-height:clamp(175px,34svh,310px);
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:clamp(15px,2vw,28px);
+  align-content:center;
+  border-top:1px solid #dedede;
+}
+.process-step:last-child { border-bottom:1px solid #dedede; }
+.process-number { font-size:12px; color:#9c321f; padding-top:5px; font-variant-numeric:tabular-nums; }
+.process-step h3 { font-size:clamp(22px,2.4vw,38px); }
+.process-step p { margin-top:10px; max-width:36ch; font-size:16px; line-height:1.55; }
+.process-step[aria-current="step"] h3 { color:#a63725; }
+@media(max-width:680px) {
+  .process-layout { display:block; }
+  .process-frame { top:0; z-index:1; height:clamp(158px,23svh,210px); border-radius:18px; box-shadow:0 7px 15px -12px #25222570; }
+  .process-stack { inset:3% 12% 8%; }
+  .process-step { min-height:clamp(144px,22svh,220px); gap:16px; padding:18px 0; }
+  .process-step:first-child { border-top:0; }
+  .sheet-caption { font-size:clamp(11px,7cqh,17px); }
+  .process-step p { margin-top:5px; font-size:15px; }
+}
+@media(prefers-reduced-motion:reduce), (max-height:460px), print {
+  .process-frame { position:relative; top:auto; }
+  .process-step { min-height:auto; padding:20px 0; }
+}
+@media(prefers-reduced-motion:reduce), print {
+  .process-meter { display:none; }
+}

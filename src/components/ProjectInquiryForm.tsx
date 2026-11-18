@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useLocation, useSearchParams } from "react-router-dom";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, LoaderCircle } from "lucide-react";
 import { audiences, plans, services } from "../data";
 import { addInquiry, type Inquiry } from "../lib/store";
 import { field, Label } from "./ui";
@@ -82,8 +82,8 @@ export function InquiryForm({ kind, action, children, owner, source }: {
     }
   }
 
-  if (result) return <div className={formClass} role="status"><div className="sm:col-span-2">
-    <Check aria-hidden="true" className="mb-4 text-brand-500"/>
+  if (result) return <div className={formClass} role="status"><div className="inquiry-receipt sm:col-span-2">
+    <span className="inquiry-success-icon mb-4"><Check aria-hidden="true" size={20}/></span>
     <h3 className="text-2xl font-semibold">{result === "demo" ? receipt[kind].saved : receipt[kind].subject + " received."}</h3>
     {result === "demo" ? <><p className="mb-5 mt-2 text-sm text-slate-600">Your details are saved in this browser. Open the prepared email and send it to Klexford for review.</p>
     <a href={draft} className="btn-primary">Open email draft <ArrowRight size={16}/></a></> :
@@ -94,8 +94,12 @@ export function InquiryForm({ kind, action, children, owner, source }: {
     {children}
     <div className="space-y-3 sm:col-span-2">
       {mode === "demo" && <p className="text-sm text-slate-600">Prepare your details here, then send them by email. A copy is saved in this browser.</p>}
-      {error && <p role="alert">We could not confirm this submission. Try again or <a className="underline" href={draft}>send your details by email</a>.</p>}
-      <button type="submit" disabled={busy} className="btn-primary">{busy ? "Submitting…" : mode === "demo" ? "Prepare email" : action} <ArrowRight size={16}/></button>
+      {error && <p role="alert" className="inquiry-error">We could not confirm this submission. Try again or <a className="underline" href={draft}>send your details by email</a>.</p>}
+      <button type="submit" disabled={busy} aria-busy={busy} className="inquiry-submit btn-primary">
+        {busy ? (mode === "demo" ? "Preparing email…" : "Submitting…") : mode === "demo" ? "Prepare email" : action}
+        {busy ? <LoaderCircle className="inquiry-spinner" size={17} aria-hidden="true"/> : <ArrowRight size={16} aria-hidden="true"/>}
+      </button>
+      <span className="sr-only" role="status">{busy ? (mode === "demo" ? "Preparing your email." : "Submitting your details.") : ""}</span>
     </div>
   </form>;
 }

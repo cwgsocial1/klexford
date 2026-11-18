@@ -1,6 +1,8 @@
-import { useId, useState, type ReactNode, type ImgHTMLAttributes } from "react";
+import { useCallback, useId, useState, type ReactNode, type ImgHTMLAttributes } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Plus } from "lucide-react";
+import "./loading-feedback.css";
+import { PageTitle } from "./PageTitle";
 
 export const Section = ({ className = "", children }: { className?: string; children: ReactNode }) => (
   <section className={`py-20 ${className}`}><div className="container-x">{children}</div></section>
@@ -15,17 +17,31 @@ export const Heading = ({ eyebrow, pre, accent, post, center, light }: { eyebrow
   </div>
 );
 
-/** Image with graceful gradient fallback if the placeholder URL fails. */
-export function Img({ className = "", alt = "", ...rest }: ImgHTMLAttributes<HTMLImageElement>) {
-  const [err, setErr] = useState(false);
-  if (err) return <div className={`bg-gradient-to-br from-brand-100 to-indigo-200 ${className}`} aria-label={alt} />;
-  return <img loading="lazy" alt={alt} onError={() => setErr(true)} className={`object-cover ${className}`} {...rest} />;
+export function Img(props: ImgHTMLAttributes<HTMLImageElement>) {
+  return <LoadingImage key={JSON.stringify([props.src, props.srcSet, props.sizes])} {...props} />;
+}
+
+function LoadingImage({ className = "", alt = "", onLoad, onError, ...props }: ImgHTMLAttributes<HTMLImageElement>) {
+  const [state, setState] = useState<"loading" | "ready" | "failed">("loading");
+  const readCachedImage = useCallback((img: HTMLImageElement | null) => {
+    if (img?.complete) setState(img.naturalWidth > 0 ? "ready" : "failed");
+  }, []);
+  if (state === "failed") {
+    return <div className={`media-fallback ${className}`} role={alt ? "img" : undefined}
+      aria-label={alt || undefined} aria-hidden={!alt}
+      style={{ width: props.width, height: props.height, ...props.style }} />;
+  }
+  return <img ref={readCachedImage} loading="lazy" {...props} alt={alt}
+    className={`object-cover ${className}`} data-media-state={state}
+    onLoad={event => { setState("ready"); onLoad?.(event); }}
+    onError={event => { setState("failed"); onError?.(event); }}
+  />;
 }
 
 export function PageHero({ eyebrow, title, accent, text, image, children }: { eyebrow: string; title: string; accent?: string; text: string; image?: string; children?: ReactNode }) {
   return (
     <section className="page-intro"><div className={`container-x intro-grid ${image ? "with-image" : ""}`}>
-      <div><p className="kicker"><i/>{eyebrow}</p><h1>{title} {accent && <em>{accent}</em>}</h1>
+      <div><p className="kicker"><i/>{eyebrow}</p><PageTitle title={title} accent={accent}/>
       <p className="intro-description">{text}</p>
       {children && <div className="intro-actions">{children}</div>}</div>
       {image && <Img src={image} alt="" className="intro-photo" />}

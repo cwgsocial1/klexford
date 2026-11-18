@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 import { audiences, services } from "../data";
 import Brand from "./Brand";
+import ReadingProgress from "./ReadingProgress";
 import "./navigation-motion.css";
 
 const pages = [["Our Work", "/work"], ["Team & Experts", "/experts"], ["About", "/about"]];
@@ -21,20 +22,35 @@ export default function Layout() {
   const header = useRef<HTMLElement>(null);
   const main = useRef<HTMLElement>(null);
   const lastPath = useRef(pathname);
+  const curtain = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [group, setGroup] = useState("");
   useEffect(() => {
     if (open) header.current?.querySelector<HTMLButtonElement>(".nav-group > button")?.focus();
   }, [open]);
   const close = () => { setOpen(false); setGroup(""); };
-  useEffect(() => {
+  useLayoutEffect(() => {
+    const changed = pathname !== lastPath.current;
     close();
     if (hash) document.getElementById(hash.slice(1))?.scrollIntoView();
     else window.scrollTo({ top: 0, behavior: "instant" });
-    if (pathname !== lastPath.current && !hash) main.current?.focus({ preventScroll: true });
+    if (changed && !hash) main.current?.focus({ preventScroll: true });
     lastPath.current = pathname;
     const title = document.querySelector("main h1")?.textContent;
     document.title = pathname === "/" ? "Klexford — Publishing, Digital & Growth Services" : `${title || "Studio"} | Klexford`;
+    if (!changed || hash || !curtain.current?.animate) return;
+    const motion = window.matchMedia("(prefers-reduced-motion: no-preference)");
+    if (!motion.matches) return;
+    const wipe = curtain.current.animate([
+      { transform: "translateX(0)", opacity: .72 },
+      { transform: "translateX(108%)", opacity: 0 },
+    ], { duration: 410, easing: "cubic-bezier(.35,0,.18,1)" });
+    const stop = () => wipe.cancel();
+    motion.addEventListener("change", stop);
+    return () => {
+      motion.removeEventListener("change", stop);
+      stop();
+    };
   }, [pathname, hash]);
   useEffect(() => {
     const outside = (e: PointerEvent) => { if (!header.current?.contains(e.target as Node)) close(); };
@@ -42,6 +58,8 @@ export default function Layout() {
     return () => document.removeEventListener("pointerdown", outside);
   }, []);
   return <>
+    <ReadingProgress/>
+    <div className="route-curtain" aria-hidden="true" ref={curtain}/>
     <a className="skip" href="#content">Skip to content</a>
     <header ref={header} className={'masthead ' + (pathname === "/" ? "on-cover" : "")} onKeyDown={e => {
       if(e.key !== "Escape") return;
