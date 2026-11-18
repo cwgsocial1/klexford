@@ -1,8 +1,8 @@
-import { useState } from "react";
+import HomeSections from "./HomeSections";
 import { Link } from "react-router-dom";
-import { ArrowRight, ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
-import { audiences, services, team, work } from "../data";
-import { CTA, Img } from "../components/ui";
+import { ArrowDown, ArrowUpRight, BookOpen, Code2, PenTool, Sparkles } from "lucide-react";
+import { audiences, services, team } from "../data";
+import { Img } from "../components/ui";
 
 export function ServiceCards() {
   return <div className="service-index">{services.map(s =>
@@ -30,65 +30,34 @@ export function AudienceCards() {
   );
 }
 
-export function WorkCard({ w }: { w: (typeof work)[number] }) {
-  return <article className="work-card">
-    <Img src={w.image} alt="" className="work-image" />
-    <div className="work-copy"><p className="eyebrow">{w.tag}</p><h3>{w.title}</h3><p>{w.summary}</p></div>
-  </article>;
-}
-
 export function TeamGrid({ limit }: { limit?: number }) {
-  return (
-    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      {team.slice(0, limit).map((m) => (
-        <div key={m.role} className="group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:shadow-card">
-          <Img src={m.image} alt={m.role} className="aspect-square w-full" />
-          <div className="p-5 text-center"><h3 className="font-semibold">{m.role}</h3></div>
-        </div>
-      ))}
-    </div>
-  );
+  return <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {team.slice(0, limit).map(m => <article key={m.initials} className="role-card">
+      <span aria-hidden="true">{m.initials}</span><h3>{m.role}</h3>
+    </article>)}</div>;
 }
 
-
-const features = [
-  { image: "/images/architecture.jpg", alt: "Looking up between two curved architectural facades", title: "Form & identity", route: "/branding-creative", tone: "architecture" },
-  { image: "/images/library.jpg", alt: "Rows of books arranged on library shelves", title: "Books & publishing", route: "/book-author-services", tone: "library" },
-  { image: "/images/studio.jpg", alt: "Light falling across a design studio", title: "Digital experiences", route: "/website-development", tone: "studio" },
-];
-const disciplines = ["Publishing", "Digital experiences", "Automation", "Growth strategy", "Brand identity"];
+function StudioObjects() {
+  return <span className="studio-objects" aria-hidden="true">
+    <i className="object-tile book"><BookOpen/></i>
+    <i className="object-tile code"><Code2/></i>
+    <i className="object-tile pen"><PenTool/></i>
+  </span>;
+}
 
 export default function Home() {
-  const [index, setIndex] = useState(0);
-  const feature = features[index];
-  const cycle = (direction: number) => setIndex(i => (i + direction + features.length) % features.length);
   return <>
-    <section className="cover">
-      <div className="cover-copy"><p className="kicker"><i/>Independent creative agency</p>
-        <h1>Ideas into<br/><em>influence.</em></h1>
-        <p className="lead">We bring publishing, brand and digital together to help authors and businesses find their audience.</p>
-        <Link to="/work" className="cover-link">Explore our work <ArrowRight size={17}/></Link>
-      </div>
-      <div className={`feature-art ${feature.tone}`}>
-        <img key={feature.image} src={feature.image} alt={feature.alt} fetchPriority="high"/>
-        <div className="feature-caption"><div aria-live="polite"><span>Studio perspectives · 0{index + 1} / 03</span>
-          <Link to={feature.route}>{feature.title} <ArrowUpRight size={17}/></Link></div>
-          <div className="feature-controls"><button aria-label="Previous perspective" onClick={() => cycle(-1)}><ChevronLeft size={18}/></button><button aria-label="Next perspective" onClick={() => cycle(1)}><ChevronRight size={18}/></button></div>
+    <div className="cover-stage">
+      <section className="hero-shell" aria-labelledby="hero-title">
+        <div className="hero-copy">
+          <p className="hero-tag"><Sparkles size={17} strokeWidth={2.2}/>Publishing, Digital &amp; Growth</p>
+          <h1 id="hero-title">Build your<br/><span className="hero-last-line">next chapter.<StudioObjects/></span></h1>
+          <p className="hero-summary">Book services, websites, automation and creative expertise for authors and businesses ready to move their work forward.</p>
+          <div className="hero-actions"><Link className="btn-primary" to="/start-a-project">Start a Project</Link><Link className="btn-ghost" to="/work">Explore Our Work</Link></div>
         </div>
-      </div>
-    </section>
-    <nav className="discipline-strip" aria-label="Agency disciplines"><div className="container-x">
-      {services.map((s,i) => <Link key={s.slug} to={s.route}><s.icon size={18} strokeWidth={1.4}/>{disciplines[i]}</Link>)}
-    </div></nav>
-    <section className="folio container-x"><p className="kicker dark"><i/>Portfolio</p>
-      <div className="section-title"><h2>Selected <em>work.</em></h2><Link to="/work" className="line-link">View all work <ArrowUpRight size={16}/></Link></div>
-      <div className="folio-grid">{[work[0], work[5]].map(w => <WorkCard key={w.title} w={w}/>)}</div>
-    </section>
-    <section className="capabilities"><div className="container-x capability-layout"><div><p className="kicker dark"><i/>Our capabilities</p>
-      <h2>Five disciplines.<br/><em>One studio.</em></h2>
-      <Link to="/who-we-help" className="line-link">Who we work with <ArrowUpRight size={16}/></Link></div>
-      <ServiceCards/></div>
-    </section>
-    <CTA/>
+        <a className="scroll-tab" href="#studio-intro">Scroll for more <span><ArrowDown size={13}/></span></a>
+      </section>
+    </div>
+    <HomeSections/>
   </>;
 }

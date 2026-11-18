@@ -39,9 +39,13 @@ const seedInvoices: Invoice[] = [
 ];
 
 export function init() {
-  if (!localStorage.getItem(K.users)) write(K.users, seedUsers);
-  if (!localStorage.getItem(K.invoices)) write(K.invoices, seedInvoices);
-  if (!localStorage.getItem(K.inquiries)) write(K.inquiries, []);
+  try {
+    if (!localStorage.getItem(K.users)) write(K.users, seedUsers);
+    if (!localStorage.getItem(K.invoices)) write(K.invoices, seedInvoices);
+    if (!localStorage.getItem(K.inquiries)) write(K.inquiries, []);
+  } catch {
+    // Public pages and the email fallback remain available when browser storage is blocked.
+  }
 }
 
 /* Users */
@@ -75,7 +79,19 @@ export const markPaid = (id: string, method: string) => { const inv = read<Invoi
 
 /* Inquiries */
 export const getInquiries = () => read<Inquiry[]>(K.inquiries, []);
-export const addInquiry = (q: Omit<Inquiry, "id" | "createdAt" | "status">) => write(K.inquiries, [{ ...q, id: uid(), createdAt: new Date().toISOString(), status: "new" }, ...getInquiries()]);
+export function addInquiry(q: Omit<Inquiry, "id" | "createdAt" | "status">) {
+  const inquiries = getInquiries();
+  const now = Date.now();
+  const recentDuplicate = inquiries.some(previous =>
+    previous.kind === q.kind && previous.email === q.email &&
+    now - Date.parse(previous.createdAt) < 60_000 &&
+    JSON.stringify(previous.data) === JSON.stringify(q.data)
+  );
+  if (!recentDuplicate) write(K.inquiries, [
+    { ...q, id: uid(), createdAt: new Date(now).toISOString(), status: "new" },
+    ...inquiries,
+  ]);
+}
 export const updateInquiry = (id: string, status: Inquiry["status"]) => write(K.inquiries, getInquiries().map((q) => (q.id === id ? { ...q, status } : q)));
 
 /* Payment settings (bank details shown on invoices) */

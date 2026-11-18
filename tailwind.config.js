@@ -3,12 +3,12 @@ export default {
   theme: { extend: {
     fontFamily: { sans: ["DM Sans", "Arial", "sans-serif"] },
     colors: {
-      brand: { 50: "#f3f4ec", 100: "#e2e8da", 500: "#406451", 600: "#305440", 700: "#203f32" },
-      ink: "#192c23", mint: "#537156",
-      slate: { 50: "#f4f3ed", 100: "#eaeae1", 200: "#d9dace", 300: "#c2c6b9", 500: "#60685f", 600: "#4e594f", 700: "#39463b" }
+      brand: { 50: "#fff4f0", 100: "#ffe1d7", 500: "#b93622", 600: "#a82e1d", 700: "#882719" },
+      ink: "#222324", mint: "#ad3824",
+      slate: { 50: "#f5f5f6", 100: "#ededef", 200: "#dedee0", 300: "#c7c7cb", 500: "#626268", 600: "#515258", 700: "#414247" }
     },
-    borderRadius: { lg: "4px", xl: "5px", "2xl": "6px", "3xl": "8px" },
-    boxShadow: { card: "0 6px 24px -14px rgba(22,42,30,.24)" },
+    borderRadius: { lg:"10px", xl:"15px", "2xl":"20px", "3xl":"28px" },
+    boxShadow: { card:"0 12px 32px -20px rgba(30,32,37,.26)" },
   } },
   plugins: [],
 };

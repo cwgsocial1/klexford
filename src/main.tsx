@@ -6,12 +6,13 @@ import { init } from "./lib/store";
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import {
-  Services, ServiceDetail, BookMarketing, WhoWeHelp, AudienceDetail, Work, Experts, BecomeExpert,
-  Resources, Tools, VisibilityCheck, About, StartProject, Legal, NotFound,
+  Services, ServiceDetail, BookMarketing, WhoWeHelp, AudienceDetail, Experts, BecomeExpert,
+  VisibilityCheck, About, StartProject, Legal, NotFound,
 } from "./pages/Pages";
 import {
   Login, DashboardLayout, Overview, Invoices, InvoiceEditor, InvoiceView, ExpertsAdmin, InquiriesAdmin, SettingsAdmin,
 } from "./dashboard/Dashboard";
+import { WorkDirectory, ProjectStudy, ResourceDirectory, Article, ToolDirectory, Checklist } from "./pages/Library";
 import { services } from "./data";
 
 init();
@@ -36,11 +37,14 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <Route path="/book-author-services/book-marketing" element={<BookMarketing />} />
           <Route path="/who-we-help" element={<WhoWeHelp />} />
           <Route path="/who-we-help/:slug" element={<AudienceDetail />} />
-          <Route path="/work" element={<Work />} />
+          <Route path="/work" element={<WorkDirectory />} />
+          <Route path="/work/:slug" element={<ProjectStudy />} />
           <Route path="/experts" element={<Experts />} />
           <Route path="/become-an-expert" element={<BecomeExpert />} />
-          <Route path="/resources" element={<Resources />} />
-          <Route path="/tools" element={<Tools />} />
+          <Route path="/resources" element={<ResourceDirectory />} />
+          <Route path="/resources/:slug" element={<Article />} />
+          <Route path="/tools" element={<ToolDirectory />} />
+          <Route path="/tools/:slug" element={<Checklist />} />
           <Route path="/tools/visibility-check" element={<VisibilityCheck />} />
           <Route path="/about" element={<About />} />
           <Route path="/start-a-project" element={<StartProject />} />

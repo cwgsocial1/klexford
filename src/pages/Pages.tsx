@@ -1,10 +1,11 @@
-import { useState, type FormEvent } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
-import { ArrowRight, Check, Mail, MapPin, Search, Target, Megaphone, Users, Rocket, Award, Heart, Shield } from "lucide-react";
-import { services, audiences, work, steps, faqs, resources, tools, IMG, plans } from "../data";
-import { Section, Heading, Img, PageHero, CTA, FAQ, field, Label } from "../components/ui";
-import { ServiceCards, AudienceCards, WorkCard, TeamGrid } from "./Home";
-import { addInquiry } from "../lib/store";
+import { useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { ArrowRight, Check, Target, Megaphone, Rocket } from "lucide-react";
+import { services, audiences, work, steps, IMG } from "../data";
+import { Section, Heading, Img, PageHero, CTA, FAQ, field } from "../components/ui";
+import { ServiceCards, AudienceCards, TeamGrid } from "./Home";
+import { casePath } from "../lib/publicPaths";
+import { FormField, InquiryForm, ProjectInquiryForm } from "../components/ProjectInquiryForm";
 
 /* ---------- Services ---------- */
 export function Services() {
@@ -29,38 +30,104 @@ const bookGroups = [
   ["Author Presence", "Author websites, book landing pages, newsletter setup and reader signup journeys."],
 ];
 
+type DepartmentGuide = {
+  headline: string;
+  brief: string;
+  scope: string[][];
+  agreement: string;
+  examples: string[];
+  related: string[];
+  question: string;
+  answer: string;
+};
+
+const departmentGuides: Record<string, DepartmentGuide> = {
+  "book-author-services": {
+    headline: "Develop your book. Prepare its launch.", brief: "Commission editing, design or marketing separately, or plan the whole route from manuscript to release.",
+    scope: bookGroups, agreement: "Agree the editorial level, manuscript version, print specifications, digital formats, revision rounds and release schedule before production.",
+    examples: ["Book Marketing", "Book Design"], related: ["website-development", "branding-creative"],
+    question: "Can marketing begin before the final manuscript is ready?", answer: "Reader research, positioning and launch planning can begin early. Finalise the cover, description and retailer links before the public campaign starts."
+  },
+  "website-development": {
+    headline: "A website built around your next business goal.", brief: "Give visitors a clear path to buy a book, request a quote, make a booking or place an order.",
+    scope: [
+      ["Author and business sites", "Map the pages around readers or customers, then integrate the approved copy, imagery and contact forms."],
+      ["E-commerce", "Plan the catalogue, product details, checkout and order confirmations. Agree on the payment provider, shipping needs and test orders."],
+      ["Landing pages and sales funnels", "Pair one offer with a focused page and follow-up journey. Test mobile layouts, form delivery and the handoff to your team."]
+    ], agreement: "The proposal defines page count, copy and image ownership, revisions, integrations and handover. Hosting, maintenance and ongoing changes are scoped separately.",
+    examples: ["Website"], related: ["book-author-services", "crm-automation"],
+    question: "Can my website connect to the CRM I already use?", answer: "List the platform and the destination for each form in the inquiry. We check available integrations and agree how to test a complete submission before launch."
+  },
+  "crm-automation": {
+    headline: "Keep leads organised and follow-up consistent.", brief: "Map the customer journey first, then connect forms, bookings and staff handoffs in GoHighLevel or an agreed platform.",
+    scope: [
+      ["Intake and pipeline setup", "Define contact fields, stages and owners. Trace a sample estimate request from the website form to a named inbox."],
+      ["Booking and follow-up", "Set the reminder timing, reply rules and staff notifications. Stop a sequence when someone replies, books, purchases or opts out."],
+      ["Integrations and handover", "Map fields between systems, check duplicates and error cases, then train the team to handle exceptions."]
+    ], agreement: "Specify the platforms, migration volume, workflows, training and support period. Recurring subscriptions, messaging usage and ongoing administration are quoted separately.",
+    examples: ["Automation"], related: ["website-development", "growth-studio"],
+    question: "What happens when a customer replies to a reminder?", answer: "We agree a stop condition for that sequence and the person responsible for the reply. Test records check the handoff before customer contacts enter the workflow."
+  },
+  "growth-studio": {
+    headline: "Digital marketing with a clear plan.", brief: "Choose channels around your audience and budget, then review traffic, inquiries and engagement against the campaign goal.",
+    scope: [
+      ["Search and visibility", "Review priority pages, search intent and local information. Agree on content changes and a way to measure qualified visits."],
+      ["Paid campaigns", "Plan the channel, budget cap, creative variations and conversion event before launching and reviewing spend."],
+      ["Social media", "Define the content calendar, production responsibilities, publishing cadence and approval process."],
+      ["Email and SMS", "Segment opted-in audiences, write the campaign sequence and test preference changes, replies and reporting."]
+    ], agreement: "Agree on the reporting period, channels and approval owner. Campaign fees are distinct from ad spend, software subscriptions and messaging charges.",
+    examples: ["Growth Studio", "Book Marketing"], related: ["book-author-services", "branding-creative"],
+    question: "How will we judge a campaign’s performance?", answer: "Choose a goal such as qualified inquiries or engaged readers, establish a baseline and specify the data source. Reports distinguish measured results from estimates."
+  },
+  "branding-creative": {
+    headline: "A clear identity people recognise.", brief: "Carry your visual identity across the places your audience encounters it, from the first book cover to the next campaign.",
+    scope: [
+      ["Brand identity", "Agree on the audience and design direction, then develop the logo, colour palette, typography and practical usage guidance."],
+      ["Campaign graphics and social content", "Choose the channels and dimensions, design a small set of approved layouts and prepare reusable assets."],
+      ["Promotional video", "Define the message, length, footage source, edit rounds and delivery formats before production."]
+    ], agreement: "The scope records creative directions, revision rounds, file formats, source files and usage rights. Third-party assets and licences are agreed before purchase.",
+    examples: ["Branding", "Book Design"], related: ["book-author-services", "website-development"],
+    question: "Which files will I receive?", answer: "We agree on a delivery list before design begins. Depending on the brief, it can include vector logos, print-ready files, web exports, source files and templates."
+  },
+};
+
+function ProjectExamples({ tags }: { tags: string[] }) {
+  return <Section className="bg-slate-50">
+    <Heading eyebrow="Illustrative briefs" pre="Explore the" accent="project scope."/>
+    <div className="mt-8 grid gap-5 md:grid-cols-2">{work.filter(w => tags.includes(w.tag)).map(w =>
+      <Link className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 hover:border-brand-500" key={w.title} to={casePath(w.title)}>
+        <Img src={w.image} alt="" className="h-20 w-20 shrink-0 rounded-xl"/><div><small>{w.tag}</small><h3 className="text-lg font-semibold">{w.title}</h3></div><ArrowRight size={17} className="ml-auto shrink-0"/>
+      </Link>
+    )}</div>
+  </Section>;
+}
+
 export function ServiceDetail({ slug }: { slug: string }) {
-  const s = services.find((x) => x.slug === slug)!;
-  const isBook = slug === "book-author-services";
-  const groups = isBook ? bookGroups : s.items.map((it) => [it, `${it} delivered within an agreed scope, owned by an identified Klexford specialist and quality-reviewed before handover.`]);
-  const related = work.filter((w) => w.tag.toLowerCase().includes(s.title.split(" ")[0].toLowerCase()) || (isBook && w.tag.startsWith("Book"))).slice(0, 3);
-  return (<>
-    <PageHero eyebrow={s.title} title={isBook ? "Develop your book. Prepare its launch." : s.desc} accent={isBook ? "Reach your readers." : undefined}
-      text={isBook ? "Commission one service, or receive coordinated support across every stage your book needs." : `Explore what our ${s.title} team delivers and how we work.`} image={s.image}>
-      <Link to={`/start-a-project?service=${encodeURIComponent(s.title)}`} className="btn-primary">Start a Project <ArrowRight size={16} /></Link>
-      {isBook && <Link to="/book-author-services/book-marketing" className="btn-ghost">Book Marketing</Link>}
+  const service = services.find(s => s.slug === slug);
+  const guide = departmentGuides[slug];
+  if (!service || !guide) return <NotFound/>;
+  const inquiry = "/start-a-project?" + new URLSearchParams({ service: service.title, source: service.route });
+  const book = slug === "book-author-services";
+  return <>
+    <PageHero eyebrow={service.title} title={guide.headline} accent={book ? "Reach your readers." : undefined} text={guide.brief} image={service.image}>
+      <Link className="btn-primary" to={inquiry}>Start a Project <ArrowRight size={16}/></Link>
+      {book && <Link className="btn-ghost" to="/book-author-services/book-marketing">Explore book marketing</Link>}
     </PageHero>
-    <Section>
-      <Heading eyebrow="What's Included" pre="Services in" accent="this department" center />
-      <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {groups.map(([t, d], i) => (
-          <div key={t} className={`rounded-2xl border p-7 ${isBook && i === 0 ? "border-brand-500 bg-brand-500 text-white" : "border-slate-200"}`}>
-            <span className={`grid h-11 w-11 place-items-center rounded-xl ${isBook && i === 0 ? "bg-white text-brand-500" : "bg-brand-50 text-brand-500"}`}><s.icon size={20} /></span>
-            <h3 className="mt-4 text-lg font-semibold">{t}</h3>
-            <p className={`mt-2 text-sm ${isBook && i === 0 ? "text-white/85" : "text-slate-600"}`}>{d}</p>
-            {isBook && i === 0 && <Link to="/book-author-services/book-marketing" className="mt-4 inline-block text-sm font-semibold">Learn more →</Link>}
-          </div>
-        ))}
-      </div>
+    <Section><Heading eyebrow="Department services" pre="Choose the work" accent="your project needs."/>
+      <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">{guide.scope.map(([name, text]) =>
+        <article key={name} className="rounded-2xl border border-slate-200 bg-white p-7"><h3 className="text-xl font-semibold">{name}</h3><p className="mt-3 text-slate-600">{text}</p></article>
+      )}</div>
     </Section>
-    <Section className="bg-ink text-white">
-      <Heading eyebrow="Process" pre="How we" accent="deliver" center light />
-      <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">{steps.map((st) => <div key={st.n} className="rounded-2xl border border-white/10 bg-white/5 p-6"><span className="text-3xl font-bold text-brand-500">{st.n}</span><h3 className="mt-3 font-semibold">{st.title}</h3><p className="mt-2 text-sm text-white/70">{st.desc}</p></div>)}</div>
-    </Section>
-    {related.length > 0 && <Section className="bg-slate-50"><Heading eyebrow="Related Work" pre="Examples from" accent="this team" /><div className="mt-10 grid gap-6 md:grid-cols-3">{related.map((w) => <WorkCard key={w.title} w={w} />)}</div></Section>}
-    <Section><Heading eyebrow="FAQ" pre="Common" accent="questions" center /><div className="mt-10"><FAQ items={faqs} /></div></Section>
-    <CTA />
-  </>);
+    <Section className="bg-ink text-white"><div className="grid items-start gap-8 lg:grid-cols-2">
+      <h2 className="text-4xl">Scope &amp; handover</h2><div><p className="text-lg">{guide.agreement}</p>
+      <p className="mt-5">If the brief spans departments, agree on a coordinator and the delivery owner for each part of the work.</p>
+      <div className="mt-6 flex flex-wrap gap-4">{services.filter(s => guide.related.includes(s.slug)).map(s => <Link className="underline underline-offset-4" to={s.route} key={s.slug}>{s.title}</Link>)}</div></div>
+    </div></Section>
+    <ProjectExamples tags={guide.examples}/>
+    <Section><Heading eyebrow="Before you start" pre="Questions about" accent={service.title}/><div className="mt-8"><FAQ items={[
+      { q: guide.question, a: guide.answer }, { q: "How do we agree a price?", a: "Share your goals, timeline and what already exists. The written proposal sets out the deliverables, fees, dependencies and review rounds for your brief." }
+    ]}/></div></Section><CTA to={inquiry}/>
+  </>;
 }
 
 /* ---------- Book Marketing ---------- */
@@ -72,7 +139,7 @@ export function BookMarketing() {
   ];
   return (<>
     <PageHero eyebrow="Book & Author Services" title="Book Marketing that" accent="reaches real readers." text="Reader-focused planning, launch support and promotional assets — delivered by a dedicated team, with honest reporting and no guaranteed-sales claims." image={IMG.bookLaunch}>
-      <Link to="/start-a-project?service=Book%20%26%20Author%20Services&type=Authors%20%26%20Publishers" className="btn-primary">Plan My Launch</Link>
+      <Link to="/start-a-project?service=Book%20%26%20Author%20Services&type=Authors%20%26%20Publishers&source=%2Fbook-author-services%2Fbook-marketing" className="btn-primary">Plan My Launch</Link>
       <Link to="/tools/visibility-check" className="btn-ghost">Free Visibility Check</Link>
     </PageHero>
     <Section>
@@ -97,7 +164,9 @@ export function BookMarketing() {
         </div>
       </div>
     </Section>
-    <CTA title="Let's plan your book launch." to="/start-a-project?service=Book%20%26%20Author%20Services" />
+    <ProjectExamples tags={["Book Marketing", "Website"]}/>
+    <Section><Heading eyebrow="Campaign review" pre="Know what" accent="to measure."/><p className="mt-6 max-w-2xl text-lg text-slate-600">Agree on the reporting period, media budget and approval owner ahead of launch. Review completed assets, qualified visits and email engagement. Include sales only when the author provides reliable figures and an agreed measurement basis.</p></Section>
+    <CTA title="Let's plan your book launch." to="/start-a-project?service=Book%20%26%20Author%20Services&source=%2Fbook-author-services%2Fbook-marketing" />
   </>);
 }
 
@@ -119,14 +188,43 @@ const audienceExtra: Record<string, { needs: string[]; svc: string[] }> = {
   "local-businesses": { needs: ["Be found locally", "A credible brand", "Organised inquiries"], svc: ["website-development", "growth-studio", "branding-creative"] },
 };
 
+const audienceBriefs: Record<string, { plan: string; question: string; answer: string; tags: string[] }> = {
+  "authors-publishers": {
+    plan: "Choose the intended reader and release window first. Check what the manuscript needs, agree on cover and interior formats, then prepare the author page, sample and launch materials.",
+    question: "Can an author commission only a launch plan?", answer: "Yes. Tell us the genre, release stage and existing reader channels. We can scope positioning, assets and activity around those without adding editing or design.", tags: ["Book Marketing", "Website"]
+  },
+  creators: {
+    plan: "Select the work you want to be hired for. Turn those examples into a portfolio, align the identity and connect service pages to an inquiry form you can manage.",
+    question: "Can I keep my existing identity?", answer: "Bring your logo, colours, type choices and portfolio. We can start from those materials and agree which gaps, if any, need design work.", tags: ["Branding"]
+  },
+  agencies: {
+    plan: "Share the client brief and delivery standard. Agree on the assets your team supplies, who speaks to the client, how reviews run and who owns each handover.",
+    question: "Who handles feedback from the end client?", answer: "Agree one contact before delivery. Your account lead can collect consolidated feedback and send it to the assigned Klexford specialist at each review round.", tags: ["Website", "Branding"]
+  },
+  "home-services": {
+    plan: "Capture the service area, job type and preferred date at inquiry. Send the request to the estimate owner, record the reply and stop estimate reminders once a booking is confirmed.",
+    question: "Can different service areas have different owners?", answer: "Yes, if the selected platform supports the routing. Map each area to an owner, choose a fallback for unmatched requests and test with sample addresses.", tags: ["Automation"]
+  },
+  appointments: {
+    plan: "Map availability and booking rules before choosing a calendar. Confirm each request, handle cancellations, and make sure staff can see replies that need personal attention.",
+    question: "What happens when a customer reschedules?", answer: "We check how the booking system records changes, cancel reminders associated with the old appointment and test that the replacement reminder uses the new time.", tags: ["Growth Studio", "Automation"]
+  },
+  "local-businesses": {
+    plan: "Start with the services, opening hours and locations people search for. Build a clear route from those pages to a call or inquiry and identify who handles each new request.",
+    question: "Can we start with one branch or location?", answer: "Yes. Scope one location first and agree how to track its inquiries. Reuse the working approach for additional locations once the team has reviewed it.", tags: ["Growth Studio", "Branding"]
+  },
+};
+
 export function AudienceDetail() {
   const { slug } = useParams();
   const a = audiences.find((x) => x.slug === slug);
   if (!a) return <NotFound />;
   const ex = audienceExtra[a.slug];
+  const brief = audienceBriefs[a.slug];
   return (<>
     <PageHero eyebrow="Who We Help" title={a.title} text={a.desc} image={a.image}>
-      <Link to={`/start-a-project?type=${encodeURIComponent(a.title)}`} className="btn-primary">Start a Project</Link>
+      <Link to={`/start-a-project?type=${encodeURIComponent(a.title)}&source=${encodeURIComponent(a.route)}`} className="btn-primary">Start a Project</Link>
+      {a.slug === "authors-publishers" && <Link className="btn-ghost" to="/book-author-services/book-marketing">Plan a book launch</Link>}
     </PageHero>
     <Section>
       <div className="grid gap-12 lg:grid-cols-2">
@@ -137,105 +235,69 @@ export function AudienceDetail() {
             <Link key={sl} to={s.route} className="flex items-center gap-4 rounded-xl border border-slate-200 p-4 hover:border-brand-500 hover:shadow-card"><Img src={s.image} className="h-16 w-16 rounded-lg" /><div><p className="font-semibold">{s.title}</p><p className="text-sm text-slate-600">{s.desc}</p></div></Link>); })}</div></div>
       </div>
     </Section>
-    <Section className="bg-slate-50"><Heading eyebrow="FAQ" pre="Questions from" accent={a.title} center /><div className="mt-10"><FAQ items={faqs} /></div></Section>
-    <CTA to={`/start-a-project?type=${encodeURIComponent(a.title)}`} />
-  </>);
-}
-
-/* ---------- Work ---------- */
-export function Work() {
-  const tags = ["All", ...Array.from(new Set(work.map((w) => w.tag)))];
-  const [f, setF] = useState("All");
-  return (<>
-    <PageHero eyebrow="Our Work" title="The work" accent="in practice." text="Explore example briefs across publishing, brand, growth and digital. Choose a discipline to see the work it can involve." />
-    <Section>
-      <div className="mb-10 flex flex-wrap justify-center gap-2">{tags.map((t) => <button key={t} aria-pressed={f === t} onClick={() => setF(t)} className={`rounded-full px-4 py-2 text-sm font-medium ${f === t ? "bg-brand-500 text-white" : "bg-slate-100 hover:bg-brand-50"}`}>{t}</button>)}</div>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">{work.filter((w) => f === "All" || w.tag === f).map((w) => <WorkCard key={w.title} w={w} />)}</div>
-    </Section>
-    <CTA />
+    <Section className="bg-ink text-white"><div className="grid gap-8 lg:grid-cols-2"><h2 className="text-4xl">From brief to delivery</h2><p className="max-w-2xl text-lg">{brief.plan}</p></div></Section>
+    <ProjectExamples tags={brief.tags}/>
+    <Section><Heading eyebrow="FAQ" pre="Questions from" accent={a.title} center /><div className="mt-10"><FAQ items={[{ q: brief.question, a: brief.answer }, { q: "What should I bring to the first conversation?", a: "Share your main goal, timeline, existing materials and a budget range. We use these details to agree on the work, the project owner and the review points." }]} /></div></Section>
+    <CTA to={`/start-a-project?type=${encodeURIComponent(a.title)}&source=${encodeURIComponent(a.route)}`} />
   </>);
 }
 
 /* ---------- Experts ---------- */
 export function Experts() {
   return (<>
-    <PageHero eyebrow="Team & Experts" title="The people" accent="behind the work." text="Every Klexford offer is owned by an identified specialist responsible for scope, quality review and delivery.">
+    <PageHero eyebrow="Team & Experts" title="Specialists for" accent="each stage." text="Find the discipline your project needs. At scoping, we confirm the people responsible for delivery, review and handover.">
       <Link to="/become-an-expert" className="btn-primary">Become an Expert</Link><Link to="/login" className="btn-ghost">Expert Login</Link>
     </PageHero>
-    <Section><TeamGrid /></Section>
+    <Section><Heading eyebrow="Directory" pre="Explore by" accent="specialty."/><div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">{services.map(s =>
+      <article key={s.slug} className="rounded-2xl border border-slate-200 bg-white p-7">
+        <s.icon size={24} className="text-brand-500"/><h3 className="mt-4 text-xl font-semibold">{s.title}</h3>
+        <p className="mt-3 text-slate-600">{s.items.join(" · ")}</p>
+        <div className="mt-5 flex flex-wrap gap-4 text-sm font-semibold">
+          <Link className="underline underline-offset-4" to={s.route}>Explore department</Link>
+          <Link className="underline underline-offset-4" to={"/start-a-project?" + new URLSearchParams({ service:s.title, source:"/experts" })}>Discuss a brief</Link>
+        </div>
+      </article>)}</div></Section>
     <CTA title="Want to collaborate with Klexford?" text="We welcome skilled specialists in publishing, web, automation, growth and creative work." to="/become-an-expert" />
   </>);
 }
 
-/* ---------- Generic form wrapper ---------- */
-function Done({ title }: { title: string }) {
-  return <div className="py-12 text-center"><span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-emerald-50"><Check className="text-mint" size={32} /></span><h3 className="mt-4 text-xl font-semibold">{title}</h3><p className="mt-1 text-slate-600">Saved in this browser’s demo workspace.</p></div>;
-}
-const fd = (e: FormEvent<HTMLFormElement>) => Object.fromEntries(new FormData(e.currentTarget).entries()) as Record<string, string>;
-
 export function BecomeExpert() {
-  const [sent, setSent] = useState(false);
-  return (<>
-    <PageHero eyebrow="Become an Expert" title="Deliver great work" accent="with Klexford." text="Apply to join our network of delivery collaborators." image={IMG.agencies} />
-    <Section>
-      <div className="grid gap-12 lg:grid-cols-5">
-        <div className="space-y-5 lg:col-span-2">
-          {[[Users, "Real clients", "Work on scoped projects for authors and businesses."], [Award, "Clear ownership", "Own your scope, quality review and delivery."], [Heart, "Supportive team", "Collaborate across five departments."], [Shield, "Get paid simply", "Create invoices and receive payment from your expert dashboard."]].map(([I, t, d]) => { const Icon = I as typeof Users; return (
-            <div key={t as string} className="flex gap-4"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-500"><Icon size={20} /></span><div><h4 className="font-semibold">{t as string}</h4><p className="text-sm text-slate-600">{d as string}</p></div></div>); })}
-        </div>
-        <form onSubmit={(e) => { e.preventDefault(); const d = fd(e); addInquiry({ kind: "expert", name: d.name, email: d.email, data: d }); setSent(true); }} className="grid gap-4 rounded-2xl border border-slate-200 p-8 shadow-card sm:grid-cols-2 lg:col-span-3">
-          {sent ? <div className="sm:col-span-2"><Done title="Application received." /></div> : (<>
-            <input name="name" required placeholder="Full name" className={field} />
-            <input name="email" required type="email" placeholder="Email" className={field} />
-            <select name="department" required className={field} defaultValue=""><option value="" disabled>Department</option>{services.map((s) => <option key={s.slug}>{s.title}</option>)}</select>
-            <input name="portfolio" placeholder="Portfolio / LinkedIn URL" className={field} />
-            <textarea name="experience" required rows={4} placeholder="Tell us about your experience" className={`${field} sm:col-span-2`} />
-            <button className="btn-primary justify-center sm:col-span-2">Submit Application</button>
-          </>)}
-        </form>
+  return <>
+    <PageHero eyebrow="Become an Expert" title="Bring your" accent="specialism." text="Apply to collaborate on publishing, websites, automation, campaigns or brand projects." image={IMG.agencies}/>
+    <Section><div className="grid gap-10 lg:grid-cols-5">
+      <div className="lg:col-span-2"><h2 className="text-4xl">Working together</h2>
+        <p className="mt-4 text-slate-600">Our coordination team reviews your experience, portfolio and availability against current project needs. Your application stays separate from the public team directory.</p>
       </div>
-    </Section>
-  </>);
-}
-
-/* ---------- Resources & Tools ---------- */
-export function Resources() {
-  return (<>
-    <PageHero eyebrow="Resources" title="Guides & checklists" accent="you can use." text="Practical guidance for authors and businesses." />
-    <Section><div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">{resources.map((r) => (
-      <article key={r.title} className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-100 transition hover:shadow-card">
-        <Img src={r.image} className="h-48 w-full" />
-        <div className="p-6"><span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-600">{r.type}</span><h3 className="mt-3 text-lg font-semibold">{r.title}</h3><details className="mt-4 border-t border-slate-200 pt-3"><summary className="cursor-pointer text-sm font-semibold">Read {r.type.toLowerCase()}</summary><ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-600">{r.notes.map(note => <li key={note}>{note}</li>)}</ul></details></div>
-      </article>))}</div></Section>
-    <CTA />
-  </>);
-}
-
-export function Tools() {
-  return (<>
-    <PageHero eyebrow="Tools" title="Free checklists" accent="& assessments." text="Quick ways to see where your book, website or business stands." />
-    <Section><div className="grid gap-6 md:grid-cols-3">{tools.map((t) => (
-      <Link key={t.title} to={t.route} className="rounded-2xl border border-slate-200 p-8 hover:border-brand-500 hover:shadow-card"><Search className="text-brand-500" /><h3 className="mt-4 text-lg font-semibold">{t.title}</h3><p className="mt-2 text-sm text-slate-600">{t.desc}</p><span className="mt-4 inline-block text-sm font-semibold text-brand-600">Open →</span></Link>))}</div></Section>
-  </>);
+      <div className="lg:col-span-3"><InquiryForm kind="expert" action="Submit application" owner="Collaboration coordinator">
+        <FormField label="Full name"><input name="name" autoComplete="name" required className={field}/></FormField>
+        <FormField label="Email"><input type="email" name="email" autoComplete="email" required className={field}/></FormField>
+        <FormField label="Specialty"><select name="department" required defaultValue="" className={field}><option value="" disabled>Select a specialty</option>{services.map(s => <option key={s.slug} value={s.slug}>{s.title}</option>)}</select></FormField>
+        <FormField label="Portfolio or professional profile"><input type="url" name="portfolio" required placeholder="https://" className={field}/></FormField>
+        <FormField label="Availability"><input name="availability" required placeholder="Start date or hours per week" className={field}/></FormField>
+        <FormField label="Time zone (optional)"><input name="timeZone" className={field}/></FormField>
+        <FormField label="Relevant experience" wide><textarea name="experience" required rows={4} placeholder="Describe a project and your contribution." className={field}/></FormField>
+      </InquiryForm></div>
+    </div></Section>
+  </>;
 }
 
 export function VisibilityCheck() {
-  const [sent, setSent] = useState(false);
-  return (<>
-    <PageHero eyebrow="Free Tool" title="Free" accent="Visibility Check" text="Share a few details and we'll send a scoped initial review of how easily your audience can find you." image={IMG.growth_studio} />
-    <Section>
-      <form onSubmit={(e) => { e.preventDefault(); const d = fd(e); addInquiry({ kind: "visibility", name: d.name, email: d.email, data: d }); setSent(true); }} className="mx-auto grid max-w-3xl gap-4 rounded-2xl border border-slate-200 p-8 shadow-card sm:grid-cols-2">
-        {sent ? <div className="sm:col-span-2"><Done title="Request received." /></div> : (<>
-          <input name="name" required placeholder="Full name" className={field} />
-          <input name="email" required type="email" placeholder="Email" className={field} />
-          <select name="type" required className={field} defaultValue=""><option value="" disabled>I am a…</option>{audiences.map((a) => <option key={a.slug}>{a.title}</option>)}</select>
-          <input name="url" placeholder="Website, book or profile link" className={field} />
-          <textarea name="goal" rows={4} placeholder="What would you like more people to find or do?" className={`${field} sm:col-span-2`} />
-          <button className="btn-primary justify-center sm:col-span-2">Request My Free Check</button>
-        </>)}
-      </form>
-    </Section>
-  </>);
+  const [review, setReview] = useState("");
+  return <>
+    <PageHero eyebrow="Free tool" title="Visibility" accent="check." text="Request a human review of one public book, author or business page. The review covers up to three observations and two practical next steps." image={IMG.growth_studio}/>
+    <Section><div className="mx-auto max-w-3xl">
+      <InquiryForm kind="visibility" action="Request review" owner={review === "Book or Author Visibility" ? "Author services lead" : "Website lead"}>
+        <FormField label="Full name"><input name="name" autoComplete="name" required className={field}/></FormField>
+        <FormField label="Email for your review"><input type="email" name="email" autoComplete="email" required className={field}/></FormField>
+        <FormField label="Review type"><select name="reviewType" required value={review} onChange={e => setReview(e.target.value)} className={field}>
+          <option value="" disabled>Select review type</option><option>Book or Author Visibility</option><option>Business Website Visibility</option>
+        </select></FormField>
+        <FormField label="Customer type"><select name="customerType" required defaultValue="" className={field}><option value="" disabled>Select audience</option>{audiences.map(a => <option key={a.slug}>{a.title}</option>)}<option>Other</option></select></FormField>
+        <FormField label="Public page to review" wide><input type="url" name="url" required pattern="https?://.+" placeholder="https://" className={field}/></FormField>
+        <FormField label="Main goal" wide><textarea name="goal" required rows={3} placeholder="What should a visitor find or do on this page?" className={field}/></FormField>
+      </InquiryForm>
+    </div></Section>
+  </>;
 }
 
 /* ---------- About ---------- */
@@ -258,33 +320,15 @@ export function About() {
 
 /* ---------- Start a Project ---------- */
 export function StartProject() {
-  const [q] = useSearchParams();
-  const [sent, setSent] = useState(false);
-  return (<>
-    <PageHero eyebrow="Start a Project" title="Tell us what" accent="you're building." text="Share the service and customer type so the right team member can prepare before our first conversation." />
-    <Section>
-      <div className="grid gap-12 lg:grid-cols-5">
-        <div className="space-y-6 lg:col-span-2">
-          <Img src={IMG.about2} className="aspect-[4/3] w-full rounded-2xl" />
-          <p className="flex items-center gap-3"><Mail className="text-brand-500" /> hello@klexford.com</p>
-
-          <p className="flex items-center gap-3"><MapPin className="text-brand-500" /> Serving clients worldwide</p>
-        </div>
-        <form onSubmit={(e) => { e.preventDefault(); const d = fd(e); addInquiry({ kind: "project", name: d.name, email: d.email, data: d }); setSent(true); }} className="grid gap-4 rounded-2xl border border-slate-200 p-8 shadow-card sm:grid-cols-2 lg:col-span-3">
-          {sent ? <div className="sm:col-span-2"><Done title="Thank you — inquiry received." /></div> : (<>
-            <label><Label>Full name</Label><input name="name" required className={field} /></label>
-            <label><Label>Email</Label><input name="email" required type="email" className={field} /></label>
-            <label><Label>I am a…</Label><select name="customerType" required className={field} defaultValue={q.get("type") ?? ""}><option value="" disabled>Select</option>{audiences.map((a) => <option key={a.slug}>{a.title}</option>)}</select></label>
-            <label><Label>Service needed</Label><select name="service" required className={field} defaultValue={q.get("service") ?? ""}><option value="" disabled>Select</option>{services.map((s) => <option key={s.slug}>{s.title}</option>)}<option>Not sure yet</option></select></label>
-            <label><Label>Way to work</Label><select name="plan" className={field} defaultValue=""><option value="">Not sure</option>{plans.map((p) => <option key={p.title}>{p.title}</option>)}</select></label>
-            <label><Label>Budget range</Label><select name="budget" className={field} defaultValue=""><option value="">Prefer not to say</option><option>Under $500</option><option>$500 – $2,000</option><option>$2,000 – $5,000</option><option>$5,000+</option></select></label>
-            <label className="sm:col-span-2"><Label>Project details</Label><textarea name="details" required rows={5} placeholder="Goals, timeline, links…" className={field} /></label>
-            <button className="btn-primary justify-center sm:col-span-2">Submit Inquiry <ArrowRight size={16} /></button>
-          </>)}
-        </form>
+  return <>
+    <PageHero eyebrow="Start a Project" title="Tell us about" accent="your project." text="Choose one service or bring several departments into the same brief."/>
+    <Section><div className="grid gap-10 lg:grid-cols-5">
+      <div className="lg:col-span-2"><Img src={IMG.about2} alt="" className="aspect-[4/3] w-full rounded-2xl"/>
+        <h2 className="mt-5 text-2xl">Prefer email?</h2><a href="mailto:hello@klexford.com" className="line-link mt-2">hello@klexford.com <ArrowRight size={15}/></a>
       </div>
-    </Section>
-  </>);
+      <div className="lg:col-span-3"><ProjectInquiryForm/></div>
+    </div></Section>
+  </>;
 }
 
 /* ---------- Legal & 404 ---------- */
@@ -294,7 +338,7 @@ export function Legal({ kind }: { kind: "privacy" | "terms" }) {
     <PageHero eyebrow="Legal" title={title} text={kind === "privacy" ? "How information is handled in this demonstration." : "Using the Klexford demonstration site."} />
     <Section><div className="mx-auto max-w-2xl space-y-5 text-lg">
       <h2 className="text-4xl">{kind === "privacy" ? "Browser storage" : "Demo workspace"}</h2>
-      <p>{kind === "privacy" ? "This demo saves project inquiries, applications, account details and invoices in the browser you use. Clearing site data removes those local records." : "The project examples, accounts and invoice workflows illustrate how the studio works. Use sample information when exploring the portals."}</p>
+      <p>{kind === "privacy" ? "When online submission is available, Klexford receives the details you submit for project, application or visibility review. In email mode, forms save a local copy in your browser and you send the prepared email yourself. Demo account and invoice records use browser storage. Clearing site data removes local copies." : "The project examples, accounts and invoice workflows illustrate how the studio works. Use sample information when exploring the portals."}</p>
       <a className="line-link" href="mailto:hello@klexford.com">Contact the studio <ArrowRight size={16}/></a>
     </div></Section>
   </>);

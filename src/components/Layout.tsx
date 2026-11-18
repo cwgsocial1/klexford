@@ -1,43 +1,66 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { ArrowUpRight, Menu, X } from "lucide-react";
+import { ChevronDown, Menu, X } from "lucide-react";
+import { audiences, services } from "../data";
 import Brand from "./Brand";
 
-const mainLinks = [["Work", "/work"], ["Capabilities", "/services"], ["Studio", "/about"], ["Resources", "/resources"]];
-const footerLinks = [
-  { title: "Explore", links: mainLinks },
-  { title: "Studio", links: [["Who we help", "/who-we-help"], ["Our specialists", "/experts"], ["Join the team", "/become-an-expert"]] },
-  { title: "Connect", links: [["Start a project", "/start-a-project"], ["Visibility check", "/tools/visibility-check"], ["Tools", "/tools"], ["Team portal", "/login"]] },
+const pages = [["Our Work", "/work"], ["Team & Experts", "/experts"], ["About", "/about"]];
+const groups = [
+  { name: "Services", route: "/services", items: services },
+  { name: "Who We Help", route: "/who-we-help", items: audiences },
+];
+const footerGroups = [
+  ...groups.map(g => ({ title: g.name, links: g.items.map(i => [i.title, i.route]) })),
+  { title: "Explore", links: [...pages, ["Resources", "/resources"], ["Tools", "/tools"], ["Visibility Check", "/tools/visibility-check"], ["Become an Expert", "/become-an-expert"], ["Start a Project", "/start-a-project"]] },
+  { title: "Legal", links: [["Privacy", "/privacy"], ["Terms", "/terms"], ["Team portal", "/login"]] },
 ];
 
 export default function Layout() {
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
+  const header = useRef<HTMLElement>(null);
   const [open, setOpen] = useState(false);
+  const [group, setGroup] = useState("");
+  const close = () => { setOpen(false); setGroup(""); };
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "instant" });
-    setOpen(false);
+    close();
+    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView();
+    else window.scrollTo({ top: 0, behavior: "instant" });
     const title = document.querySelector("main h1")?.textContent;
-    document.title = pathname === "/" ? "Klexford — Independent Creative Agency" : `${title || "Studio"} | Klexford`;
-  }, [pathname]);
+    document.title = pathname === "/" ? "Klexford — Publishing, Digital & Growth Services" : `${title || "Studio"} | Klexford`;
+  }, [pathname, hash]);
+  useEffect(() => {
+    const outside = (e: PointerEvent) => { if (!header.current?.contains(e.target as Node)) close(); };
+    document.addEventListener("pointerdown", outside);
+    return () => document.removeEventListener("pointerdown", outside);
+  }, []);
   return <>
     <a className="skip" href="#content">Skip to content</a>
-    <header className="masthead">
-      <div className="container-x mast-inner">
-        <Brand />
-        <nav className="desktop-nav" aria-label="Primary">{mainLinks.map(([name, url]) => <NavLink key={url} to={url}>{name}</NavLink>)}</nav>
-        <Link to="/start-a-project" className="nav-cta">Start a project <ArrowUpRight size={15} /></Link>
-        <button className="menu-toggle" aria-expanded={open} aria-controls="mobile-nav" aria-label={open ? "Close menu" : "Open menu"} onClick={() => setOpen(!open)}>{open ? <X/> : <Menu/>}</button>
+    <header ref={header} className={'masthead ' + (pathname === "/" ? "on-cover" : "")} onKeyDown={e => {
+      if(e.key !== "Escape") return;
+      const active = header.current?.querySelector<HTMLButtonElement>('.nav-group button[aria-expanded="true"]');
+      if(active) { setGroup(""); active.focus(); } else { close(); header.current?.querySelector<HTMLButtonElement>(".menu-toggle")?.focus(); }
+    }} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) close(); }}>
+      <div className="mast-inner">
+        <Brand/>
+        <nav id="agency-nav" className={'agency-nav ' + (open ? "is-open" : "")} aria-label="Main navigation">
+          {groups.map(g => <div className="nav-group" key={g.route}>
+            <button aria-expanded={group === g.name} aria-controls={'menu-'+g.route.slice(1)} onClick={() => setGroup(group === g.name ? "" : g.name)}>{g.name}<ChevronDown size={12}/></button>
+            {group === g.name && <div className="nav-panel" id={'menu-'+g.route.slice(1)} onClick={close}>
+              <Link to={g.route}>Explore {g.name.toLowerCase()}</Link>
+              {g.items.map(i => <Link key={i.route} to={i.route}>{i.title}</Link>)}
+            </div>}
+          </div>)}
+          {pages.map(([name,url]) => <NavLink key={url} to={url} onClick={close}>{name}</NavLink>)}
+        </nav>
+        <Link to="/start-a-project" className="nav-cta" onClick={close}>Start a Project</Link>
+        <button className="menu-toggle" aria-controls="agency-nav" aria-expanded={open} aria-label={open ? "Close menu" : "Open menu"} onClick={() => {setOpen(!open);setGroup("");}}>{open ? <X/> : <Menu/>}</button>
       </div>
-      {open && <nav id="mobile-nav" className="mobile-nav container-x" aria-label="Mobile" onClick={() => setOpen(false)}>
-        {[...mainLinks, ["Who we help", "/who-we-help"], ["Team portal", "/login"]].map(([name, url]) => <NavLink to={url} key={url}>{name}<ArrowUpRight size={17}/></NavLink>)}
-      </nav>}
     </header>
-    <main id="content"><Outlet /></main>
+    <main id="content"><Outlet/></main>
     <footer className="site-footer"><div className="container-x">
-      <div className="footer-grid"><div><Brand/><p>Publishing, digital and growth.<br/>An independent creative agency.</p></div>
-        {footerLinks.map(group => <div key={group.title}><h2>{group.title}</h2>{group.links.map(([name, url]) => <Link key={url} to={url}>{name}</Link>)}</div>)}
-      </div>
-      <div className="footer-meta"><span>© {new Date().getFullYear()} Klexford</span><Link to="/privacy">Privacy</Link><Link to="/terms">Terms</Link></div>
+      <div className="footer-grid"><div><Brand/><p>Publishing, digital and growth services for authors and businesses.</p></div>
+        {footerGroups.map(g => <div key={g.title}><h2>{g.title}</h2>{g.links.map(([name,url]) => <Link key={url} to={url}>{name}</Link>)}</div>)}
+      </div><div className="footer-meta">© {new Date().getFullYear()} Klexford</div>
     </div></footer>
   </>;
 }
