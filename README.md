@@ -1,6 +1,6 @@
 # Klexford
 
-Klexford is a React and TypeScript agency website. Its admin and expert workspaces use Supabase Auth, Postgres and Storage. Vercel Functions handle expert invitations and inquiry intake.
+Klexford is a React and TypeScript agency website. Its admin and expert workspaces use Supabase Auth, Postgres and Storage. Expert invitations and inquiry intake run on Supabase Edge Functions in production. The Vite development server calls the same handlers locally.
 
 ## Run locally
 
@@ -23,7 +23,7 @@ npm test --prefix supabase/tests
 
 ## Connect Supabase
 
-The Klexford project reference is `xkjfggdqswzmbriwaxgk`. Obtain keys for that project from **Project Settings → API Keys**. Set these in `.env.local` for development and in the hosting project's environment for deployment.
+The Klexford project reference is `xkjfggdqswzmbriwaxgk`. The live site at `https://klexford.vercel.app` uses the project URL and public browser key in `config/public-supabase.json`. The hosted Edge Function receives its privileged credentials from Supabase. For local development or a custom deployment, obtain the following settings from **Project Settings → API Keys** and set them in the appropriate environment.
 
 | Variable | Used by | Value |
 | --- | --- | --- |
@@ -42,6 +42,7 @@ npx supabase login
 npx supabase link --project-ref xkjfggdqswzmbriwaxgk
 npx supabase db push --dry-run
 npx supabase db push
+npx supabase functions deploy klexford-workspace --use-api
 ```
 
 In Supabase **Authentication → URL Configuration**, set the site URL and allow the exact `/account/password` redirect for production and any local development origins you use. Configure Auth email delivery for real recipients. Then provision the first administrator following the account-specific SQL in the [database setup guide](supabase/README.md).

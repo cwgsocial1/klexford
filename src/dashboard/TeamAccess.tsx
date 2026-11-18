@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { field, Label } from "../components/ui";
+import { workspaceEndpoint } from "../lib/workspaceApi";
 import { supabase } from "../lib/supabase";
 import { permissionLabels, profileFields, type Permission, type Profile } from "./PortalContext";
 
@@ -132,8 +133,12 @@ export function TeamAccess() {
         setMessage("Sign in again to invite an expert.");
         return;
       }
-      const res = await fetch("/api/invite-expert", {
+      const discovery = await fetch("/api/invite-expert", { cache: "no-store" });
+      if (!discovery.ok && discovery.status !== 405) throw new Error("Invitation configuration unavailable.");
+      const edge = discovery.ok && (await discovery.json()).edge === true;
+      const res = await fetch(workspaceEndpoint("invite-expert", edge), {
         method: "POST",
+        redirect: "error",
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + data.session.access_token },
         body: JSON.stringify({ name: values.get("name"), email: values.get("email") }),
       });

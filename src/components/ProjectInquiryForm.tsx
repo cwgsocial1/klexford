@@ -5,6 +5,7 @@ import { audiences, plans, services } from "../data";
 import type { Inquiry } from "../lib/operations";
 import { field, Label } from "./ui";
 
+import { workspaceEndpoint } from "../lib/workspaceApi";
 import { useSiteSettings } from "../lib/siteSettings";
 const formClass = "grid min-w-0 gap-5 rounded-3xl border border-slate-200 bg-white p-5 text-ink shadow-card sm:grid-cols-2 sm:p-8";
 const receipt = {
@@ -17,13 +18,16 @@ export function FormField({ label, children, wide = false }: { label: string; ch
   return <label className={wide ? "min-w-0 sm:col-span-2" : "min-w-0"}><Label>{label}</Label>{children}</label>;
 }
 
-async function inquiryMode(): Promise<"email" | "live"> {
+type InquiryMode = "email" | "live" | "edge";
+
+async function inquiryMode(): Promise<InquiryMode> {
   const response = await fetch("/api/inquiries", { headers: { Accept: "application/json" }, cache: "no-store" });
   if (response.status === 404 || (response.ok && response.headers.get("content-type")?.includes("text/html"))) return "email";
   if (!response.ok) throw new Error("The inquiry service is unavailable.");
   const config = await response.json();
   if (typeof config.live !== "boolean") throw new Error("Invalid inquiry configuration.");
-  return config.live ? "live" : "email";
+  if (!config.live) return "email";
+  return config.edge === true ? "edge" : "live";
 }
 
 export function InquiryForm({ kind, action, children, owner, source }: {
@@ -31,7 +35,7 @@ export function InquiryForm({ kind, action, children, owner, source }: {
 }) {
   const { pathname } = useLocation();
   const { contact_email: contact } = useSiteSettings();
-  const [mode, setMode] = useState<"email" | "live" | null>(null);
+  const [mode, setMode] = useState<InquiryMode | null>(null);
   const [result, setResult] = useState<"email" | "live" | null>(null);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState(false);
@@ -61,18 +65,18 @@ export function InquiryForm({ kind, action, children, owner, source }: {
     setDraft("mailto:" + contact + "?subject=" + encodeURIComponent(receipt[kind].subject) + "&body=" + encodeURIComponent(body));
     const payload = { kind, name: entries.name, email: entries.email, data: { ...entries, source: source || pathname, owner } };
     try {
-      const delivery = mode === "live" ? mode : await inquiryMode();
+      const delivery = mode && mode !== "email" ? mode : await inquiryMode();
       setMode(delivery);
-      if (delivery === "live") {
+      if (delivery !== "email") {
         const key = JSON.stringify(payload);
         if (attempt.current.key !== key) attempt.current = { key, id: crypto.randomUUID() };
-        const response = await fetch("/api/inquiries", {
+        const response = await fetch(workspaceEndpoint("inquiries", delivery === "edge"), {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ...payload, requestId: attempt.current.id }),
         });
         if (!response.ok || (await response.json()).ok !== true) throw new Error("Submission failed.");
       }
-      setResult(delivery);
+      setResult(delivery === "email" ? "email" : "live");
     } catch {
       setError(true);
     } finally {

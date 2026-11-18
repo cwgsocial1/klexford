@@ -1,0 +1,4 @@
+project_id = "klexford"
+
+[functions.klexford-workspace]
+verify_jwt = false
