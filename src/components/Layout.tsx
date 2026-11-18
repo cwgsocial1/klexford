@@ -5,6 +5,7 @@ import { audiences, services } from "../data";
 import Brand from "./Brand";
 import ReadingProgress from "./ReadingProgress";
 import "./navigation-motion.css";
+import "./home-navigation.css";
 
 const pages = [["Our Work", "/work"], ["Team & Experts", "/experts"], ["About", "/about"]];
 const groups = [

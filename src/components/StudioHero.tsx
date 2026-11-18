@@ -79,35 +79,33 @@ export default function StudioHero() {
     try { sessionStorage.setItem("klexford:hero-motion", next ? "paused" : "playing"); } catch { /* Private browsing can disable storage. */ }
   }
 
-  return <div className="cover-stage">
-    <section ref={shell} className={'hero-shell studio-scene' + (paused ? ' scene-paused' : '')} aria-labelledby="hero-title">
-      <div className="scene-surface" aria-hidden="true"/>
-      <div className="scene-sheen" aria-hidden="true"/>
-      <div className="scene-cursor-light" aria-hidden="true"/>
-      <div className="hero-copy">
-        <p className="hero-tag"><Sparkles size={17} strokeWidth={2.2}/>Publishing, Digital &amp; Growth</p>
-        <div className="scene-lockup">
-          <h1 id="hero-title" aria-label="Build your next chapter.">
-            <span className="kinetic-word" aria-hidden="true"><span>Build</span></span>{" "}
-            <span className="kinetic-word" aria-hidden="true"><span>your</span></span><br/>
-            <span className="kinetic-word" aria-hidden="true"><span>next</span></span>{" "}
-            <span className="kinetic-word" aria-hidden="true"><span>chapter.</span></span>
-          </h1>
-          <div role="group" aria-label="Explore a studio discipline" className="studio-objects" data-discipline={choice?.key}>
-            {disciplines.map((d, i) => <button key={d.key} type="button" className={'object-tile ' + d.key}
-              aria-label={'Preview ' + d.label.toLowerCase()} aria-pressed={active === i} aria-controls="hero-discipline"
-              title={'Preview ' + d.label.toLowerCase()} onClick={() => setActive(active === i ? null : i)}><span className="tile-face"><d.icon aria-hidden="true"/></span></button>)}
-          </div>
+  return <section ref={shell} className={'hero-shell studio-scene' + (paused ? ' scene-paused' : '')} aria-labelledby="hero-title">
+    <div className="scene-surface" aria-hidden="true"><span className="scene-rim"/></div>
+    <div className="scene-sheen" aria-hidden="true"/>
+    <div className="scene-cursor-light" aria-hidden="true"/>
+    <div className="hero-copy">
+      <p className="hero-tag"><Sparkles size={17} strokeWidth={2.2}/>Publishing, Digital &amp; Growth</p>
+      <div className="scene-lockup">
+        <h1 id="hero-title" aria-label="Build your next chapter.">
+          <span className="kinetic-word" aria-hidden="true"><span>Build</span></span>{" "}
+          <span className="kinetic-word" aria-hidden="true"><span>your</span></span>{" "}
+          <span className="kinetic-word" aria-hidden="true"><span>next</span></span><br/>
+          <span className="kinetic-word" aria-hidden="true"><span>chapter.</span></span>
+        </h1>
+        <div role="group" aria-label="Explore a studio discipline" className="studio-objects" data-discipline={choice?.key}>
+          {disciplines.map((d, i) => <button key={d.key} type="button" className={'object-tile ' + d.key}
+            aria-label={'Preview ' + d.label.toLowerCase()} aria-pressed={active === i} aria-controls="hero-discipline"
+            title={'Preview ' + d.label.toLowerCase()} onClick={() => setActive(active === i ? null : i)}><span className="tile-face"><d.icon aria-hidden="true"/></span></button>)}
         </div>
-        <div className="hero-summary" id="hero-discipline" aria-live="polite" aria-atomic="true">
-          <p key={choice?.key || "overview"} className="scene-description">{choice ? <>{choice.text}{" "}<Link to={choice.to}>{choice.label} <ArrowUpRight size={13}/></Link></> : "Book services, websites, automation and creative expertise for authors and businesses ready to move their work forward."}</p>
-        </div>
-        <div className="hero-actions"><Link className="btn-primary" to="/start-a-project">Start a Project</Link><Link className="btn-ghost" to="/work">Explore Our Work</Link></div>
       </div>
-      <a className="scroll-tab" href="#studio-intro">Scroll for more <span><ArrowDown size={13}/></span></a>
-      <button type="button" className="scene-playback" onClick={toggleMotion} aria-label={paused ? "Play hero animation" : "Pause hero animation"} title={paused ? "Play hero animation" : "Pause hero animation"}>
-        {paused ? <Play size={14}/> : <Pause size={14}/>}
-      </button>
-    </section>
-  </div>;
+      <div className="hero-summary" id="hero-discipline" aria-live="polite" aria-atomic="true">
+        <p key={choice?.key || "overview"} className="scene-description">{choice ? <>{choice.text}{" "}<Link to={choice.to}>{choice.label} <ArrowUpRight size={13}/></Link></> : "Book services, websites, automation and creative expertise for authors and businesses ready to move their work forward."}</p>
+      </div>
+      <div className="hero-actions"><Link className="btn-primary" to="/start-a-project">Start a Project</Link><Link className="btn-ghost" to="/work">Explore Our Work</Link></div>
+    </div>
+    <a className="scroll-tab" href="#studio-intro">Scroll for more <span><ArrowDown size={13}/></span></a>
+    <button type="button" className="scene-playback" onClick={toggleMotion} aria-label={paused ? "Play hero animation" : "Pause hero animation"} title={paused ? "Play hero animation" : "Pause hero animation"}>
+      {paused ? <Play size={14}/> : <Pause size={14}/>}
+    </button>
+  </section>;
 }

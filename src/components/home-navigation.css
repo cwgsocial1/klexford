@@ -1,0 +1,54 @@
+/* The home masthead floats directly on the opening scene. */
+.masthead.on-cover {
+  top: max(env(safe-area-inset-top), clamp(15px, 2.3svh, 23px));
+  padding-inline: 16px;
+}
+.masthead.on-cover .mast-inner {
+  width: clamp(52rem, 54vw, 55rem);
+  max-width: 100%;
+  min-height: clamp(64px, 8.5svh, 76px);
+  justify-content: space-between;
+  gap: 18px;
+  padding: 8px 9px 8px clamp(24px, 2.2vw, 36px);
+  background: linear-gradient(110deg, #ffffffdb, #fbfbfbdc 74%, #fff9f5a8);
+  border: 1px solid #ffffff85;
+  box-shadow: inset 0 1px 0 #ffffffe0, 0 3px 18px #3430390a;
+  backdrop-filter: blur(19px);
+  -webkit-backdrop-filter: blur(19px);
+}
+.masthead.on-cover .wordmark {
+  color: #393d40;
+  font-size: 26px;
+  flex: none;
+}
+.masthead.on-cover .agency-nav {
+  font-size: 14px;
+  column-gap: clamp(13px, 1.25vw, 20px);
+}
+.masthead.on-cover .nav-cta {
+  min-height: clamp(45px, 6svh, 55px);
+  padding-inline: clamp(20px, 1.8vw, 29px);
+  font-size: 15px;
+  font-weight: 500;
+}
+@media (max-width: 960px) {
+  .masthead.on-cover .mast-inner {
+    width: min(100%, 31rem);
+    min-height: 58px;
+    padding: 6px 10px 6px 20px;
+    gap: 7px;
+  }
+  .masthead.on-cover .wordmark { font-size: 23px; }
+  .masthead.on-cover .nav-cta {
+    min-height: 42px;
+    margin-inline-start: auto;
+    padding: 9px 16px;
+    font-size: 13px;
+  }
+  .masthead.on-cover .menu-toggle { width: 40px; height: 44px; }
+  .masthead.on-cover .agency-nav.is-open { max-height: min(70svh, 32rem); }
+}
+@media (max-width: 420px) {
+  .masthead.on-cover { padding-inline: 12px; }
+  .masthead.on-cover .mast-inner { padding-inline: 15px 8px; }
+}

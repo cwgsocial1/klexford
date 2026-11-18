@@ -9,40 +9,68 @@
   z-index:-1;
 }
 .scene-surface {
+  --fold-x:116%;
+  --fold-y:162%;
+  --fold-center:-22% 94%;
   inset:-2.5%;
-  background:center / cover url('/images/studio-fold.jpg');
+  background:
+    radial-gradient(ellipse at 48% 8%,#f5f8fc 0%,transparent 42%),
+    linear-gradient(129deg,transparent 10%,#88919d33 14%,#6c758436 17%,#bfc6d02e 20%,transparent 27%),
+    radial-gradient(ellipse at 56% 87%,#f4f7fc,transparent 40%),#dce0e6;
+}
+/* Separate surfaces keep the art at the page edge across aspect ratios. */
+.scene-surface::before,.scene-surface::after {
+  content:""; position:absolute; inset:0;
+}
+.scene-surface::before {
+  background:linear-gradient(180deg,#ff8066 0%,#ff7c60 29%,#fd7257 45%,#bd4c4444 64%,transparent 80%);
+  mask-image:radial-gradient(ellipse var(--fold-x) var(--fold-y) at var(--fold-center),transparent 83%,#0003 91%,#000d 97.4%,#000 99.2%,transparent 100.8%);
+}
+.scene-surface::after {
+  background:
+    radial-gradient(ellipse 65% 118% at 108% -15%,#e0e2e8 15%,#ffd2c9 42%,#ffa58e 52%,#fc6951 58%,#e63829 62%,#9d191d 65%,#13151a 72%,#080b10 90%,#363a40);
+  mask-image:radial-gradient(ellipse var(--fold-x) var(--fold-y) at var(--fold-center),transparent 98.5%,#0003 99.2%,#000 100.2%);
+}
+.scene-rim {
+  position:absolute; inset:0; z-index:1;
+  background:linear-gradient(180deg,#ff74573b 2%,#ff4b2e 30%,#d52c1c 49%,#611519 62%,#aeb4bd 86%,#eceff2 100%);
+  mask-image:radial-gradient(ellipse var(--fold-x) var(--fold-y) at var(--fold-center),transparent 98.5%,#0009 98.9%,#0002 99.15%,transparent 99.6%);
 }
 .scene-sheen {
   inset:-10%;
-  background:radial-gradient(ellipse at 72% 48%, #ffb89b33, transparent 47%);
+  background:radial-gradient(ellipse at 74% 42%,#ffddd32e,transparent 46%);
   mix-blend-mode:soft-light;
 }
-.scene-lockup { position:relative; display:table; margin:24px auto 0; font-size:clamp(72px,7.4vw,124px); }
-.scene-lockup h1 { margin:0; font-size:inherit; }
-.scene-lockup h1::after { content:""; display:inline-block; width:2.04em; }
-.scene-lockup .studio-objects { position:absolute; right:0; bottom:.095em; }
+.scene-lockup {
+  --capsule-space:2.74em;
+  position:relative; display:table; margin:clamp(22px,3svh,34px) auto 0;
+  font-size:clamp(70px,7.35vw,130px); line-height:1.055;
+}
+.scene-lockup h1 { margin:0; font-size:inherit; line-height:inherit; white-space:nowrap; }
+.scene-lockup h1::after { content:""; display:inline-block; width:var(--capsule-space); }
+.scene-lockup .studio-objects { position:absolute; right:0; bottom:.11em; }
 .studio-objects .object-tile { cursor:pointer; background:transparent; box-shadow:none; }
 .tile-face { display:grid; place-items:center; width:100%; height:100%; border-radius:inherit; background:linear-gradient(140deg,#fff,#f9f7f3); box-shadow:1px 4px 6px #52200e22; pointer-events:none; }
 .object-tile[aria-pressed="true"] { outline:2px solid currentColor; outline-offset:2px; }
 .object-tile:focus-visible { z-index:4; outline:3px solid #1c2540; outline-offset:4px; }
 .scene-description a { display:inline-flex; align-items:center; gap:2px; color:#70291c; font-weight:700; text-decoration:underline; text-underline-offset:3px; }
-.studio-scene .hero-summary { min-height:4.65em; display:grid; align-items:center; margin-top:clamp(32px,4.5vh,50px); }
-.studio-scene .hero-actions { margin-top:16px; }
+.studio-scene .hero-summary { min-height:3.1em; display:grid; align-items:center; margin-top:clamp(62px,10svh,105px); }
+.studio-scene .hero-actions { margin-top:clamp(20px,3svh,32px); }
 .scene-playback { position:absolute; right:18px; bottom:16px; width:36px; height:36px; border-radius:50%; display:grid; place-items:center; background:#ffffffe0; color:#353438; border:1px solid #0002; }
-@media(min-width:651px){
-  .scene-lockup h1::first-line { line-height:1.12; }
-}
 @media(max-width:650px){
-  .scene-lockup { font-size:clamp(50px,11.4vw,74px); margin-top:27px; }
-  .scene-lockup h1::after { display:none; }
-  .scene-lockup .studio-objects { position:relative; bottom:auto; width:140px; height:35px; margin:16px auto 0; }
-  .scene-lockup .object-tile { width:34px; height:34px; }
-  .scene-surface { background-position:64% center; }
-  .studio-scene .hero-summary { min-height:6em; margin-top:27px; }
-  .scene-playback { bottom:10px;right:10px; }
+  .scene-lockup { --capsule-space:2.25em; font-size:clamp(46px,11vw,70px); margin-top:26px; }
+  .scene-lockup .studio-objects { width:2.05em; height:.68em; }
+  .scene-lockup .object-tile { width:.66em; height:.66em; }
+  .scene-surface { --fold-x:118%; --fold-y:176%; --fold-center:-19% 95%; }
+  .studio-scene .hero-summary { max-width:350px; min-height:4.65em; margin-top:clamp(42px,8svh,66px); }
+  .scene-playback { bottom:12px;right:12px; }
+  .scroll-tab { min-width:178px; padding:10px 20px 8px; }
 }
-@media(max-width:380px){ .scene-lockup {font-size:47px;} }
-
+@media(max-height:600px) and (min-width:651px){
+  .hero-copy {padding-block:106px 68px;}
+  .scene-lockup {font-size:clamp(62px,6vw,85px);margin-top:14px;}
+  .studio-scene .hero-summary {margin-top:40px;}
+}
 @media(prefers-reduced-motion:no-preference) {
   .studio-scene:not(.scene-paused) .scene-surface {
     transform:translate3d(calc(var(--scene-x) * -14px),calc(var(--scene-y) * -9px),0);
@@ -121,7 +149,7 @@
     background:radial-gradient(ellipse at 25% 15%, #ffa65b99, transparent 48%),
       linear-gradient(120deg,#aa190c,#ff4d29 42%,#ff8457 60%,#c82914 84%);
     background-size:155% 145%;
-    border-radius:55% 45% 47% 53% / 68% 62% 38% 32%;
+    border-radius:999px;
     box-shadow:inset 0 -3px 7px #a820263a,inset 0 2px 4px #ffccb07a,0 .1em .2em #c53f1e4d;
     transition:scale 300ms ease;
   }
@@ -148,8 +176,8 @@
   to { opacity:1; transform:translateY(0) rotateX(0); }
 }
 @keyframes studio-liquid {
-  from { border-radius:53% 47% 43% 57% / 64% 49% 51% 36%; background-position:15% 50%; }
-  to { border-radius:41% 59% 56% 44% / 41% 66% 34% 59%; background-position:95% 45%; }
+  from { border-radius:22% 20% 20% 22% / 54% 52% 48% 46%; background-position:15% 50%; }
+  to { border-radius:20% 22% 22% 20% / 48% 50% 50% 52%; background-position:95% 45%; }
 }
 
 /* A sweep of ink follows the first scroll into the studio introduction. */
