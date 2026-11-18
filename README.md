@@ -25,8 +25,7 @@ Demo accounts:
 
 ## Editing content
 - Text, services, audiences, team, work, images: src/data.ts
-- Images are Unsplash placeholders (IMG object in src/data.ts). Replace the URLs with your own,
-  or put files in /public/images and use "/images/your-file.jpg".
+- Photography is served from public/images. Update src/data.ts to change page images and src/pages/Home.tsx to change the rotating homepage feature. Fonts and their licenses are in public/fonts.
 
 ## IMPORTANT before going live
 Data is currently stored in the browser (localStorage) in src/lib/store.ts — fine for demos,

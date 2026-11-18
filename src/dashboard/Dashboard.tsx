@@ -11,7 +11,7 @@ import {
 } from "../lib/store";
 import { services } from "../data";
 import { field, Label, Img } from "../components/ui";
-import { IMG } from "../data";
+import Brand from "../components/Brand";
 
 const CURRENCIES = ["USD", "NGN", "GBP", "EUR", "CAD"];
 const statusStyle: Record<InvoiceStatus, string> = {
@@ -36,13 +36,13 @@ export function Login() {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       <div className="relative hidden lg:block">
-        <Img src={IMG.office} className="absolute inset-0 h-full w-full" />
-        <div className="absolute inset-0 bg-gradient-to-t from-brand-700/90 to-brand-500/40" />
+        <Img src="/images/studio.jpg" className="absolute inset-0 h-full w-full" />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink to-transparent" />
         <div className="absolute bottom-12 left-12 max-w-md text-white"><h2 className="text-3xl font-bold">Klexford Team Portal</h2><p className="mt-3 text-white/85">Manage projects, create invoices and receive payments.</p></div>
       </div>
       <div className="flex items-center justify-center p-8">
         <form onSubmit={submit} className="w-full max-w-sm space-y-5">
-          <Link to="/" className="flex items-center gap-2 text-xl font-bold text-brand-600"><span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-500 text-white">K</span>Klexford</Link>
+          <Brand/>
           <div><h1 className="text-2xl font-bold">Welcome back</h1><p className="text-sm text-slate-500">Sign in as Admin or Expert.</p></div>
           {err && <p className="rounded-lg bg-rose-50 p-3 text-sm text-rose-600">{err}</p>}
           <label className="block"><Label>Email</Label><input name="email" type="email" required className={field} /></label>
@@ -72,8 +72,8 @@ export function DashboardLayout({ role }: { role: Role }) {
   ] as [typeof Users, string, string][];
   return (
     <div className="flex min-h-screen bg-slate-50">
-      <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-ink p-5 text-white transition lg:static lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
-        <Link to="/" className="flex items-center gap-2 text-lg font-bold"><span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-500">K</span>Klexford</Link>
+      <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-ink p-5 text-white transition lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
+        <Brand/>
         <p className="mt-1 text-xs uppercase tracking-wider text-white/50">{role} portal</p>
         <nav className="mt-8 space-y-1">
           {items.map(([I, l, to]) => (
@@ -85,8 +85,8 @@ export function DashboardLayout({ role }: { role: Role }) {
       {open && <div className="fixed inset-0 z-30 bg-black/40 lg:hidden" onClick={() => setOpen(false)} />}
       <div className="min-w-0 flex-1">
         <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
-          <button className="lg:hidden" onClick={() => setOpen(!open)}>{open ? <X /> : <Menu />}</button>
-          <p className="hidden font-semibold lg:block">Hello, {user.name.split(" ")[0]} 👋</p>
+          <button aria-label="Toggle workspace menu" aria-expanded={open} className="lg:hidden" onClick={() => setOpen(!open)}>{open ? <X /> : <Menu />}</button>
+          <p className="hidden font-semibold lg:block">{role === "admin" ? "Agency workspace" : "Expert workspace"}</p>
           <div className="flex items-center gap-3"><div className="text-right text-sm"><p className="font-semibold">{user.name}</p><p className="text-xs text-slate-500">{user.specialty}</p></div><span className="grid h-10 w-10 place-items-center rounded-full bg-brand-500 font-bold text-white">{user.name[0]}</span></div>
         </header>
         <div className="p-6 lg:p-8"><Outlet /></div>
@@ -293,9 +293,9 @@ export function InvoiceView() {
           <button onClick={() => window.print()} className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand-600"><Printer size={16} />Print / Save PDF</button>
         </div>
         <div className="overflow-hidden rounded-3xl bg-white shadow-card print:shadow-none">
-          <div className="flex flex-wrap items-start justify-between gap-6 bg-gradient-to-r from-brand-500 to-indigo-600 p-8 text-white">
-            <div><p className="flex items-center gap-2 text-2xl font-bold"><span className="grid h-9 w-9 place-items-center rounded-lg bg-white text-brand-600">K</span>Klexford</p><p className="mt-2 text-sm text-white/80">Publishing, Digital & Growth Services</p></div>
-            <div className="text-right"><p className="text-sm uppercase tracking-wider text-white/70">Invoice</p><p className="text-2xl font-bold">{inv.number}</p><span className="mt-2 inline-block rounded-full bg-white px-3 py-1 text-xs font-semibold capitalize text-brand-600">{inv.status}</span></div>
+          <div className="flex flex-wrap items-start justify-between gap-6 bg-ink p-8 text-white">
+            <div><Brand/><p className="mt-2 text-sm text-white/80">Publishing, Digital & Growth Services</p></div>
+            <div className="text-right"><p className="text-sm uppercase tracking-wider text-white/70">Invoice</p><h1 className="text-4xl">{inv.number}</h1><span className="mt-2 inline-block rounded-full bg-white px-3 py-1 text-xs font-semibold capitalize text-brand-600">{inv.status}</span></div>
           </div>
           <div className="grid gap-6 p-8 sm:grid-cols-3">
             <div><p className="text-xs uppercase text-slate-400">Billed to</p><p className="mt-1 font-semibold">{inv.clientName}</p><p className="text-sm text-slate-500">{inv.clientEmail}</p></div>

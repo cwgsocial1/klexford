@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { ArrowRight, Check, Mail, Phone, MapPin, Search, Target, Megaphone, Users, Rocket, Award, Heart, Shield } from "lucide-react";
+import { ArrowRight, Check, Mail, MapPin, Search, Target, Megaphone, Users, Rocket, Award, Heart, Shield } from "lucide-react";
 import { services, audiences, work, steps, faqs, resources, tools, IMG, plans } from "../data";
 import { Section, Heading, Img, PageHero, CTA, FAQ, field, Label } from "../components/ui";
 import { ServiceCards, AudienceCards, WorkCard, TeamGrid } from "./Home";
@@ -13,15 +13,10 @@ export function Services() {
       <Link to="/start-a-project" className="btn-primary">Start a Project</Link>
     </PageHero>
     <Section><ServiceCards /></Section>
-    <Section className="bg-slate-50">
-      <Heading eyebrow="Compare" pre="What each" accent="department" post="covers" center />
-      <div className="mt-10 overflow-x-auto rounded-2xl border border-slate-200 bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-brand-50"><tr><th className="p-4">Department</th><th className="p-4">Included capabilities</th><th className="p-4"></th></tr></thead>
-          <tbody>{services.map((s) => <tr key={s.slug} className="border-t border-slate-100"><td className="p-4 font-semibold">{s.title}</td><td className="p-4 text-slate-600">{s.items.join(", ")}</td><td className="p-4"><Link to={s.route} className="font-semibold text-brand-600">View →</Link></td></tr>)}</tbody>
-        </table>
-      </div>
-    </Section>
+    <Section className="bg-slate-50"><div className="capability-layout">
+      <Heading eyebrow="Finding your team" pre="Start with" accent="your audience."/>
+      <div><p className="max-w-xl text-lg">An author preparing for publication needs a different team from a business redesigning its booking system. Explore the services that fit your brief.</p>
+      <Link to="/who-we-help" className="line-link mt-6">Find your team <ArrowRight size={16}/></Link></div></div></Section>
     <CTA />
   </>);
 }
@@ -152,9 +147,9 @@ export function Work() {
   const tags = ["All", ...Array.from(new Set(work.map((w) => w.tag)))];
   const [f, setF] = useState("All");
   return (<>
-    <PageHero eyebrow="Our Work" title="Selected projects" accent="& case studies." text="Browse completed work across our five departments. Images and projects are placeholders until approved examples are added." />
+    <PageHero eyebrow="Our Work" title="The work" accent="in practice." text="Explore example briefs across publishing, brand, growth and digital. Choose a discipline to see the work it can involve." />
     <Section>
-      <div className="mb-10 flex flex-wrap justify-center gap-2">{tags.map((t) => <button key={t} onClick={() => setF(t)} className={`rounded-full px-4 py-2 text-sm font-medium ${f === t ? "bg-brand-500 text-white" : "bg-slate-100 hover:bg-brand-50"}`}>{t}</button>)}</div>
+      <div className="mb-10 flex flex-wrap justify-center gap-2">{tags.map((t) => <button key={t} aria-pressed={f === t} onClick={() => setF(t)} className={`rounded-full px-4 py-2 text-sm font-medium ${f === t ? "bg-brand-500 text-white" : "bg-slate-100 hover:bg-brand-50"}`}>{t}</button>)}</div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">{work.filter((w) => f === "All" || w.tag === f).map((w) => <WorkCard key={w.title} w={w} />)}</div>
     </Section>
     <CTA />
@@ -174,7 +169,7 @@ export function Experts() {
 
 /* ---------- Generic form wrapper ---------- */
 function Done({ title }: { title: string }) {
-  return <div className="py-12 text-center"><span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-emerald-50"><Check className="text-mint" size={32} /></span><h3 className="mt-4 text-xl font-semibold">{title}</h3><p className="mt-1 text-slate-600">We'll be in touch shortly.</p></div>;
+  return <div className="py-12 text-center"><span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-emerald-50"><Check className="text-mint" size={32} /></span><h3 className="mt-4 text-xl font-semibold">{title}</h3><p className="mt-1 text-slate-600">Saved in this browser’s demo workspace.</p></div>;
 }
 const fd = (e: FormEvent<HTMLFormElement>) => Object.fromEntries(new FormData(e.currentTarget).entries()) as Record<string, string>;
 
@@ -210,7 +205,7 @@ export function Resources() {
     <Section><div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">{resources.map((r) => (
       <article key={r.title} className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-100 transition hover:shadow-card">
         <Img src={r.image} className="h-48 w-full" />
-        <div className="p-6"><span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-600">{r.type}</span><h3 className="mt-3 text-lg font-semibold">{r.title}</h3><p className="mt-2 text-sm text-slate-500">Article coming soon.</p></div>
+        <div className="p-6"><span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-600">{r.type}</span><h3 className="mt-3 text-lg font-semibold">{r.title}</h3><details className="mt-4 border-t border-slate-200 pt-3"><summary className="cursor-pointer text-sm font-semibold">Read {r.type.toLowerCase()}</summary><ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-600">{r.notes.map(note => <li key={note}>{note}</li>)}</ul></details></div>
       </article>))}</div></Section>
     <CTA />
   </>);
@@ -272,7 +267,7 @@ export function StartProject() {
         <div className="space-y-6 lg:col-span-2">
           <Img src={IMG.about2} className="aspect-[4/3] w-full rounded-2xl" />
           <p className="flex items-center gap-3"><Mail className="text-brand-500" /> hello@klexford.com</p>
-          <p className="flex items-center gap-3"><Phone className="text-brand-500" /> +000 000 0000 (to be confirmed)</p>
+
           <p className="flex items-center gap-3"><MapPin className="text-brand-500" /> Serving clients worldwide</p>
         </div>
         <form onSubmit={(e) => { e.preventDefault(); const d = fd(e); addInquiry({ kind: "project", name: d.name, email: d.email, data: d }); setSent(true); }} className="grid gap-4 rounded-2xl border border-slate-200 p-8 shadow-card sm:grid-cols-2 lg:col-span-3">
@@ -296,9 +291,11 @@ export function StartProject() {
 export function Legal({ kind }: { kind: "privacy" | "terms" }) {
   const title = kind === "privacy" ? "Privacy Policy" : "Terms of Service";
   return (<>
-    <PageHero eyebrow="Legal" title={title} text="Placeholder text — replace with your reviewed legal copy before launch." />
-    <Section><div className="mx-auto max-w-3xl space-y-6 text-slate-600">
-      {["Introduction", "Information we collect", "How we use information", "Payments & invoices", "Your rights", "Contact"].map((h) => <div key={h}><h2 className="text-xl font-semibold text-ink">{h}</h2><p className="mt-2">This section will describe Klexford's {h.toLowerCase()} policy. Final wording to be approved before publication.</p></div>)}
+    <PageHero eyebrow="Legal" title={title} text={kind === "privacy" ? "How information is handled in this demonstration." : "Using the Klexford demonstration site."} />
+    <Section><div className="mx-auto max-w-2xl space-y-5 text-lg">
+      <h2 className="text-4xl">{kind === "privacy" ? "Browser storage" : "Demo workspace"}</h2>
+      <p>{kind === "privacy" ? "This demo saves project inquiries, applications, account details and invoices in the browser you use. Clearing site data removes those local records." : "The project examples, accounts and invoice workflows illustrate how the studio works. Use sample information when exploring the portals."}</p>
+      <a className="line-link" href="mailto:hello@klexford.com">Contact the studio <ArrowRight size={16}/></a>
     </div></Section>
   </>);
 }

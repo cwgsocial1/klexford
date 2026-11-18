@@ -7,27 +7,26 @@ import {
 export interface Service { slug: string; title: string; route: string; desc: string; items: string[]; icon: LucideIcon; image: string; }
 export interface Audience { slug: string; title: string; route: string; desc: string; icon: LucideIcon; image: string; }
 
-const u = (id: string, w = 1200) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=80`;
 export const IMG = {
-  hero: u("photo-1522071820081-009f0129c71c"),
-  about1: u("photo-1552664730-d307ca884978", 800), about2: u("photo-1556761175-5973dc0f32e7", 600), about3: u("photo-1600880292203-757bb62b4baf", 600),
-  book_author_services: u("photo-1512820790803-83ca734da794"),
-  website_development: u("photo-1460925895917-afdab827c52f"),
-  crm_automation: u("photo-1551288049-bebda4e38f71"),
-  growth_studio: u("photo-1533750349088-cd871a92f312"),
-  branding_creative: u("photo-1561070791-2526d30994b5"),
-  authors_publishers: u("photo-1455390582262-044cdead277a"),
-  creators: u("photo-1611162617213-7d7a39e9b1d7"),
-  agencies: u("photo-1519389950473-47ba0277781c"),
-  home_services: u("photo-1581578731548-c64695cc6952"),
-  appointments: u("photo-1576091160550-2173dba999ef"),
-  local_businesses: u("photo-1556740758-90de374c12ad"),
-  bookLaunch: u("photo-1544716278-ca5e3f4abd8c"),
-  writing: u("photo-1586281380349-632531db7ed4"),
-  office: u("photo-1497366216548-37526070297c"),
-  p1: u("photo-1573496359142-b8d87734a5a2", 400), p2: u("photo-1507003211169-0a1dd7228f2d", 400),
-  p3: u("photo-1494790108377-be9c29b29330", 400), p4: u("photo-1500648767791-00dcc994a43e", 400),
-  p5: u("photo-1438761681033-6461ffad8d80", 400), p6: u("photo-1472099645785-5658abf4ff4e", 400),
+  hero: "/images/hero.jpg",
+  about1: "/images/about1.jpg", about2: "/images/about2.jpg", about3: "/images/about3.jpg",
+  book_author_services: "/images/book_author_services.jpg",
+  website_development: "/images/website_development.jpg",
+  crm_automation: "/images/crm_automation.jpg",
+  growth_studio: "/images/growth_studio.jpg",
+  branding_creative: "/images/branding_creative.jpg",
+  authors_publishers: "/images/authors_publishers.jpg",
+  creators: "/images/creators.jpg",
+  agencies: "/images/agencies.jpg",
+  home_services: "/images/home_services.jpg",
+  appointments: "/images/appointments.jpg",
+  local_businesses: "/images/local_businesses.jpg",
+  bookLaunch: "/images/bookLaunch.jpg",
+  writing: "/images/writing.jpg",
+  office: "/images/office.jpg",
+  p1: "/images/p1.jpg", p2: "/images/p2.jpg",
+  p3: "/images/p3.jpg", p4: "/images/p4.jpg",
+  p5: "/images/p5.jpg", p6: "/images/p6.jpg",
 };
 
 export const services: Service[] = [
@@ -111,13 +110,14 @@ export const faqs = [
 ];
 
 export const resources = [
-  { type: "Guide", title: "Planning a book launch: the first 90 days", image: IMG.bookLaunch },
-  { type: "Checklist", title: "Manuscript-to-upload publishing checklist", image: IMG.writing },
-  { type: "Assessment", title: "Is your website ready to take inquiries?", image: IMG.website_development },
-  { type: "Guide", title: "Setting up follow-up workflows that feel personal", image: IMG.crm_automation },
-  { type: "Checklist", title: "Brand identity essentials for small businesses", image: IMG.branding_creative },
-  { type: "Guide", title: "Email vs SMS: choosing your customer channel", image: IMG.growth_studio },
+  { type: "Guide", title: "Planning a book launch: the first 90 days", image: IMG.bookLaunch, notes: ["Days 1–30: identify the reader, choose a release date and write a one-paragraph pitch.", "Days 31–60: prepare the book page, sample chapter and a short email sequence.", "Days 61–90: schedule announcements, check retail links and review reader responses."] },
+  { type: "Checklist", title: "Manuscript-to-upload publishing checklist", image: IMG.writing, notes: ["Read the final proof in print and on a small screen.", "Check chapter navigation, page breaks and the cover at thumbnail size.", "Match the title, author name and description across the file and listing."] },
+  { type: "Assessment", title: "Is your website ready to take inquiries?", image: IMG.website_development, notes: ["Open the homepage on a phone. Can you identify the offer in one sentence?", "Follow the main call to action and submit a test inquiry.", "Check who receives the message, who replies and what the visitor sees next."] },
+  { type: "Guide", title: "Setting up follow-up workflows that feel personal", image: IMG.crm_automation, notes: ["Map the steps between an inquiry and the first conversation.", "Give each follow-up an owner, a reason and a clear next action.", "Stop the sequence when the customer replies and review missed handoffs."] },
+  { type: "Checklist", title: "Brand identity essentials for small businesses", image: IMG.branding_creative, notes: ["Check the logo on light and dark backgrounds and at small sizes.", "Choose a display typeface, a text typeface and a short colour palette.", "Apply them to one real layout before making templates for every channel."] },
+  { type: "Guide", title: "Email vs SMS: choosing your customer channel", image: IMG.growth_studio, notes: ["Ask which channel the customer prefers and record their choice.", "Use email for detail and SMS for short, timely updates.", "Test each message on mobile and make it easy to change preferences."] },
 ];
+
 
 export const tools = [
   { title: "Free Visibility Check", desc: "A scoped initial review of how easily people can find you.", route: "/tools/visibility-check" },
