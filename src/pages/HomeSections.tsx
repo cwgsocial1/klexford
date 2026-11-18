@@ -5,6 +5,7 @@ import { Img } from "../components/ui";
 import { ProjectInquiryForm } from "../components/ProjectInquiryForm";
 import { audiences, IMG, plans, resources, services, work } from "../data";
 import { casePath, resourcePath } from "../lib/publicPaths";
+import { portfolioUrl, usePublishedQuotes, usePublishedWork } from "../lib/portfolio";
 import "../home-sections.css";
 import ProcessStory from "./ProcessStory";
 
@@ -58,7 +59,11 @@ function AudienceIndex() {
 function SelectedWork() {
   const track = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ start: true, end: false });
-  const projects = [work[0], work[2], work[5], work[1], work[3], work[4]];
+  const {rows} = usePublishedWork({limit:6});
+  const projects = [
+    ...rows.map(row => ({ ...row, tag:row.category, path:portfolioUrl(row.id), type:"Portfolio" })),
+    ...[work[0], work[2], work[5], work[1], work[3], work[4]].map(row => ({ ...row, path:casePath(row.title), type:"Illustrative project" })),
+  ].slice(0,6);
 
   function updateEdges() {
     const el = track.current;
@@ -72,7 +77,7 @@ function SelectedWork() {
     updateEdges();
     window.addEventListener("resize", updateEdges);
     return () => window.removeEventListener("resize", updateEdges);
-  }, []);
+  }, [rows.length]);
 
   function move(direction: -1 | 1) {
     const el = track.current;
@@ -90,16 +95,16 @@ function SelectedWork() {
   return (
     <section className="hs-wrap hs-pad" id="work" aria-labelledby="work-title">
       <div className="hs-head"><h2 id="work-title">Selected work</h2>
-        <div className="hs-work-nav"><SectionLink to="/work">All project examples</SectionLink>
+        <div className="hs-work-nav"><SectionLink to="/work">Browse all work</SectionLink>
           <div className="hs-reel-controls">
             <button aria-label="Previous project" aria-controls="project-reel" disabled={edges.start} onClick={() => move(-1)}><ArrowLeft size={17}/></button>
             <button aria-label="Next project" aria-controls="project-reel" disabled={edges.end} onClick={() => move(1)}><ArrowRight size={17}/></button>
           </div>
         </div>
       </div>
-      <div className="hs-work" id="project-reel" ref={track} onScroll={updateEdges}>{projects.map(w => <Link to={casePath(w.title)} key={w.title}>
-        <div className="hs-work-image"><Img src={w.image} loading="lazy" alt="" /><span><ArrowUpRight size={19}/></span></div>
-        <p className="hs-meta">{w.tag} · Illustrative project</p><h3>{w.title}</h3><p>{w.summary}</p>
+      <div className="hs-work" id="project-reel" ref={track} onScroll={updateEdges}>{projects.map(w => <Link to={w.path} key={w.path}>
+        <div className="hs-work-image">{w.image ? <Img src={w.image} loading="lazy" alt="" /> : <div className="media-fallback" aria-hidden="true"/>}<span><ArrowUpRight size={19}/></span></div>
+        <p className="hs-meta">{[w.tag, w.type].filter(Boolean).join(" · ")}</p><h3 className="break-words">{w.title}</h3><p className="line-clamp-3 break-words">{w.summary}</p>
       </Link>)}</div>
     </section>
   );
@@ -153,6 +158,22 @@ function StudioAndResources() {
   </>;
 }
 
+function Testimonials() {
+  const quotes = usePublishedQuotes();
+  if (!quotes.rows.length) return null;
+  return <section className="hs-wash" aria-labelledby="testimonials-title"><div className="hs-wrap hs-pad">
+    <div className="hs-head"><h2 id="testimonials-title">Client testimonials</h2></div>
+    <div className="grid gap-5 md:grid-cols-2">{quotes.rows.map(t => <figure key={t.id} className="rounded-2xl border border-slate-200 bg-white p-7">
+      <blockquote className="whitespace-pre-line break-words text-xl">“{t.quote}”</blockquote>
+      <figcaption className="mt-5 text-sm"><strong>{t.client_name}</strong>{t.client_title && <span> · {t.client_title}</span>}</figcaption>
+    </figure>)}</div>
+    {quotes.more && <div className="mt-6">
+      {quotes.error && <p role="alert" className="mb-2">More testimonials could not be loaded.</p>}
+      <button type="button" className="btn-ghost" disabled={quotes.loading} onClick={quotes.next}>{quotes.loading ? "Loading…" : quotes.error ? "Try again" : "More testimonials"}</button>
+    </div>}
+  </div></section>;
+}
+
 export default function HomeSections() {
   const sectionRoot = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -183,7 +204,7 @@ export default function HomeSections() {
     };
   }, []);
   return <div className="home-sections" ref={sectionRoot}>
-    <Introduction/><Departments/><AudienceIndex/><SelectedWork/><BookFeature/><Engagements/><StudioAndResources/>
+    <Introduction/><Departments/><AudienceIndex/><SelectedWork/><BookFeature/><Engagements/><Testimonials/><StudioAndResources/>
     <section id="inquiry" className="hs-wash" aria-labelledby="inquiry-title"><div className="hs-wrap hs-pad hs-inquiry">
       <div><p className="hs-label">Start a project</p><h2 id="inquiry-title">Tell us what you’re building.</h2>
         <p>Which audience do you want to reach, and what would you like them to do? Share your brief so the right specialists can prepare.</p>

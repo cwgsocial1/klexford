@@ -1,0 +1,131 @@
+.portal-access {
+  min-height: 100svh;
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  background: radial-gradient(at 90% 12%, #fce4da, transparent 45%), #f4f4f6;
+  padding: 24px;
+}
+.portal-access-inner {
+  width: min(100%, 430px);
+  display: grid;
+  justify-items: start;
+  gap: 20px;
+  padding: clamp(25px, 5vw, 45px);
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 24px;
+  box-shadow: 0 16px 64px #29232912;
+}
+.portal-access h1,
+.workspace h1 {
+  font-size: clamp(28px, 3vw, 42px);
+  line-height: 1.1;
+  font-weight: 600;
+}
+.portal-access form {
+  width: 100%;
+  display: grid;
+  gap: 18px;
+}
+.workspace {
+  display: flex;
+  min-height: 100svh;
+  background: #f6f6f7;
+}
+.workspace-nav {
+  width: 245px;
+  flex: none;
+  padding: 28px 18px;
+  background: #242427;
+  color: white;
+  height: 100svh;
+  position: sticky;
+  top: 0;
+  overflow: auto;
+}
+.workspace-nav > p {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 10px;
+  margin: 16px 0 30px;
+  color: #d2cbcb;
+}
+.workspace-nav nav {
+  display: grid;
+  gap: 4px;
+}
+.workspace-nav nav a,
+.workspace-site {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+.workspace-site {
+  margin-top: 24px;
+}
+.workspace-nav a[aria-current],
+.workspace-nav nav a:hover {
+  background: #444246;
+}
+.workspace-body {
+  flex: 1;
+  min-width: 0;
+}
+.workspace-body > header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+  background: white;
+  border-bottom: 1px solid #ddd;
+  padding: 14px clamp(16px, 3vw, 46px);
+  font-size: 14px;
+}
+.workspace-body > header button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.workspace-body > header .workspace-toggle {
+  display: none;
+}
+.workspace-content {
+  max-width: 1450px;
+  margin: auto;
+  padding: clamp(16px, 3vw, 46px);
+}
+.access-panel {
+  border: 1px solid #dfdfe1;
+  border-radius: 18px;
+  background: white;
+  padding: clamp(18px, 3vw, 30px);
+}
+.access-panel h2 {
+  font-weight: 600;
+  font-size: 20px;
+}
+.access-panel input[type="checkbox"] {
+  accent-color: #a52d1f;
+}
+@media (max-width: 800px) {
+  .workspace {
+    flex-direction: column;
+  }
+  .workspace-nav {
+    display: none;
+    position: relative;
+    height: auto;
+    width: auto;
+  }
+  .workspace-nav.is-open {
+    display: block;
+  }
+  .workspace-body > header .workspace-toggle {
+    display: inline-flex;
+    margin-right: auto;
+  }
+}

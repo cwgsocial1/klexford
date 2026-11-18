@@ -2,10 +2,10 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "rea
 import { useLocation, useSearchParams } from "react-router-dom";
 import { ArrowRight, Check, LoaderCircle } from "lucide-react";
 import { audiences, plans, services } from "../data";
-import { addInquiry, type Inquiry } from "../lib/store";
+import type { Inquiry } from "../lib/operations";
 import { field, Label } from "./ui";
 
-const contact = "hello@klexford.com";
+import { useSiteSettings } from "../lib/siteSettings";
 const formClass = "grid min-w-0 gap-5 rounded-3xl border border-slate-200 bg-white p-5 text-ink shadow-card sm:grid-cols-2 sm:p-8";
 const receipt = {
   project: { subject: "Project inquiry", saved: "Your project brief is ready." },
@@ -17,21 +17,22 @@ export function FormField({ label, children, wide = false }: { label: string; ch
   return <label className={wide ? "min-w-0 sm:col-span-2" : "min-w-0"}><Label>{label}</Label>{children}</label>;
 }
 
-async function inquiryMode(): Promise<"demo" | "live"> {
+async function inquiryMode(): Promise<"email" | "live"> {
   const response = await fetch("/api/inquiries", { headers: { Accept: "application/json" }, cache: "no-store" });
-  if (response.status === 404 || (response.ok && response.headers.get("content-type")?.includes("text/html"))) return "demo";
+  if (response.status === 404 || (response.ok && response.headers.get("content-type")?.includes("text/html"))) return "email";
   if (!response.ok) throw new Error("The inquiry service is unavailable.");
   const config = await response.json();
   if (typeof config.live !== "boolean") throw new Error("Invalid inquiry configuration.");
-  return config.live ? "live" : "demo";
+  return config.live ? "live" : "email";
 }
 
 export function InquiryForm({ kind, action, children, owner, source }: {
   kind: Inquiry["kind"]; action: string; children: ReactNode; owner: string; source?: string;
 }) {
   const { pathname } = useLocation();
-  const [mode, setMode] = useState<"demo" | "live" | null>(null);
-  const [result, setResult] = useState<"demo" | "live" | null>(null);
+  const { contact_email: contact } = useSiteSettings();
+  const [mode, setMode] = useState<"email" | "live" | null>(null);
+  const [result, setResult] = useState<"email" | "live" | null>(null);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -62,9 +63,7 @@ export function InquiryForm({ kind, action, children, owner, source }: {
     try {
       const delivery = mode === "live" ? mode : await inquiryMode();
       setMode(delivery);
-      if (delivery === "demo") {
-        addInquiry(payload);
-      } else {
+      if (delivery === "live") {
         const key = JSON.stringify(payload);
         if (attempt.current.key !== key) attempt.current = { key, id: crypto.randomUUID() };
         const response = await fetch("/api/inquiries", {
@@ -84,8 +83,8 @@ export function InquiryForm({ kind, action, children, owner, source }: {
 
   if (result) return <div className={formClass} role="status"><div className="inquiry-receipt sm:col-span-2">
     <span className="inquiry-success-icon mb-4"><Check aria-hidden="true" size={20}/></span>
-    <h3 className="text-2xl font-semibold">{result === "demo" ? receipt[kind].saved : receipt[kind].subject + " received."}</h3>
-    {result === "demo" ? <><p className="mb-5 mt-2 text-sm text-slate-600">Your details are saved in this browser. Open the prepared email and send it to Klexford for review.</p>
+    <h3 className="text-2xl font-semibold">{result === "email" ? receipt[kind].saved : receipt[kind].subject + " received."}</h3>
+    {result === "email" ? <><p className="mb-5 mt-2 text-sm text-slate-600">Open your email draft and send it to Klexford for review.</p>
     <a href={draft} className="btn-primary">Open email draft <ArrowRight size={16}/></a></> :
     <p className="mt-2 text-sm text-slate-600">Klexford will review your details and follow up using the email you provided.</p>}
   </div></div>;
@@ -93,13 +92,13 @@ export function InquiryForm({ kind, action, children, owner, source }: {
   return <form onSubmit={submit} className={formClass}>
     {children}
     <div className="space-y-3 sm:col-span-2">
-      {mode === "demo" && <p className="text-sm text-slate-600">Prepare your details here, then send them by email. A copy is saved in this browser.</p>}
+      {mode === "email" && <p className="text-sm text-slate-600">Prepare your details here, then send them by email.</p>}
       {error && <p role="alert" className="inquiry-error">We could not confirm this submission. Try again or <a className="underline" href={draft}>send your details by email</a>.</p>}
       <button type="submit" disabled={busy} aria-busy={busy} className="inquiry-submit btn-primary">
-        {busy ? (mode === "demo" ? "Preparing email…" : "Submitting…") : mode === "demo" ? "Prepare email" : action}
+        {busy ? (mode === "email" ? "Preparing email…" : "Submitting…") : mode === "email" ? "Prepare email" : action}
         {busy ? <LoaderCircle className="inquiry-spinner" size={17} aria-hidden="true"/> : <ArrowRight size={16} aria-hidden="true"/>}
       </button>
-      <span className="sr-only" role="status">{busy ? (mode === "demo" ? "Preparing your email." : "Submitting your details.") : ""}</span>
+      <span className="sr-only" role="status">{busy ? (mode === "email" ? "Preparing your email." : "Submitting your details.") : ""}</span>
     </div>
   </form>;
 }

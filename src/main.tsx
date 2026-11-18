@@ -1,8 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Outlet, Routes, Route } from "react-router-dom";
 import "./index.css";
-import { init } from "./lib/store";
+import { AuthProvider } from "./dashboard/PortalContext";
+import { Login, RequirePermission, SetPassword, Workspace } from "./dashboard/Portal";
+import { TeamAccess } from "./dashboard/TeamAccess";
+import { PortfolioManager, TestimonialManager } from "./dashboard/ContentManager";
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import {
@@ -10,19 +13,20 @@ import {
   VisibilityCheck, About, StartProject, Legal, NotFound,
 } from "./pages/Pages";
 import {
-  Login, DashboardLayout, Overview, Invoices, InvoiceEditor, InvoiceView, ExpertsAdmin, InquiriesAdmin, SettingsAdmin,
+  Overview, Invoices, InvoiceEditor, InvoiceView, InquiriesAdmin, SettingsAdmin,
 } from "./dashboard/Dashboard";
 import { WorkDirectory, ProjectStudy, ResourceDirectory, Article, ToolDirectory, Checklist } from "./pages/Library";
 import { services } from "./data";
 
-init();
-
-const dash = (
+const sharedRoutes = (
   <>
     <Route index element={<Overview />} />
-    <Route path="invoices" element={<Invoices />} />
-    <Route path="invoices/new" element={<InvoiceEditor />} />
-    <Route path="invoices/:id" element={<InvoiceEditor />} />
+    <Route path="portfolio" element={<RequirePermission permission="work.manage"><PortfolioManager /></RequirePermission>} />
+    <Route path="testimonials" element={<RequirePermission permission="testimonials.manage"><TestimonialManager /></RequirePermission>} />
+    <Route path="invoices" element={<RequirePermission permission="invoices.manage"><Invoices /></RequirePermission>} />
+    <Route path="invoices/new" element={<RequirePermission permission="invoices.manage"><InvoiceEditor /></RequirePermission>} />
+    <Route path="invoices/:id" element={<RequirePermission permission="invoices.manage"><InvoiceEditor /></RequirePermission>} />
+    <Route path="inquiries" element={<RequirePermission permission="inquiries.manage"><InquiriesAdmin /></RequirePermission>} />
   </>
 );
 
@@ -52,15 +56,21 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <Route path="/terms" element={<Legal kind="terms" />} />
           <Route path="*" element={<NotFound />} />
         </Route>
-        <Route path="/login" element={<Login />} />
         <Route path="/invoice/:id" element={<InvoiceView />} />
-        <Route path="/admin" element={<DashboardLayout role="admin" />}>
-          {dash}
-          <Route path="experts" element={<ExpertsAdmin />} />
-          <Route path="inquiries" element={<InquiriesAdmin />} />
-          <Route path="settings" element={<SettingsAdmin />} />
+        <Route element={<AuthProvider><Outlet /></AuthProvider>}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/account/password" element={<SetPassword />} />
+          <Route path="/admin" element={<Workspace role="admin" />}>
+            {sharedRoutes}
+            <Route path="experts" element={<TeamAccess />} />
+            <Route path="settings" element={<SettingsAdmin />} />
+            <Route path="*" element={<Navigate to="/admin" replace />} />
+          </Route>
+          <Route path="/expert" element={<Workspace role="expert" />}>
+            {sharedRoutes}
+            <Route path="*" element={<Navigate to="/expert" replace />} />
+          </Route>
         </Route>
-        <Route path="/expert" element={<DashboardLayout role="expert" />}>{dash}</Route>
       </Routes>
     </BrowserRouter>
   </React.StrictMode>

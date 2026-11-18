@@ -2,10 +2,10 @@ import { useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, BookOpen, Check, ClipboardList, Globe, Search } from "lucide-react";
 import { PageHero, Img } from "../components/ui";
-import { resources, work } from "../data";
-import "./Library.css";
-
+import { audiences, resources, work } from "../data";
+import { portfolioUrl, usePublishedWork } from "../lib/portfolio";
 import { casePath, resourcePath, slug, checklistIds } from "../lib/publicPaths";
+import "./Library.css";
 
 type Brief = {
   audience: string;
@@ -62,8 +62,8 @@ function EmptyPath({ to, label }: { to: string; label: string }) {
 
 function DirectoryCard({ image, type, title, text, to }: { image: string; type: string; title: string; text: string; to: string }) {
   return <Link to={to} className="library-card">
-    <div className="library-card-frame"><Img className="library-card-image" src={image} alt=""/></div>
-    <div className="library-card-copy"><span>{type}</span><h2>{title}</h2><p>{text}</p><ArrowRight aria-hidden="true" size={19}/></div>
+    <div className="library-card-frame">{image ? <Img className="library-card-image" src={image} alt=""/> : <div aria-hidden="true" className="library-card-image bg-brand-50"/>}</div>
+    <div className="library-card-copy"><span>{type}</span><h2 className="break-words">{title}</h2><p className="line-clamp-3 break-words">{text}</p><ArrowRight aria-hidden="true" size={19}/></div>
   </Link>;
 }
 
@@ -77,23 +77,51 @@ function Detail({ back, label, children }: { back: string; label: string; childr
 export function WorkDirectory() {
   const [discipline, setDiscipline] = useState("");
   const [audience, setAudience] = useState("");
-  const visible = work.filter(item => (!discipline || item.tag === discipline) && (!audience || briefs[item.tag].audience === audience));
+  const [page, setPage] = useState(0);
+  const published = usePublishedWork({ category: discipline, audience, page });
+  const examples = work.filter(item => (!discipline || item.tag === discipline) && (!audience || briefs[item.tag].audience === audience));
+  const visibleExamples = page === 0 ? examples : [];
+  const total = published.rows.length + visibleExamples.length;
   return <>
-    <PageHero eyebrow="Our work" title="Project studies." text="Explore illustrative briefs from publishing, brand and digital. Each study outlines the objective, proposed deliverables and how the work would be reviewed."/>
+    <PageHero eyebrow="Our work" title="Project studies." text="Browse the studio’s portfolio and explore illustrative briefs across publishing, brand and digital."/>
     <section className="library-content container-x" aria-label="Project studies">
       <div className="library-filters">
-        <label>Discipline<select value={discipline} onChange={e => setDiscipline(e.target.value)}><option value="">All disciplines</option>{work.map(item => <option key={item.tag}>{item.tag}</option>)}</select></label>
-        <label>Audience<select value={audience} onChange={e => setAudience(e.target.value)}><option value="">All audiences</option>{Array.from(new Set(Object.values(briefs).map(b => b.audience))).map(a => <option key={a}>{a}</option>)}</select></label>
+        <label>Discipline<select value={discipline} onChange={e => { setDiscipline(e.target.value); setPage(0); }}><option value="">All disciplines</option>{work.map(item => <option key={item.tag}>{item.tag}</option>)}</select></label>
+        <label>Audience<select value={audience} onChange={e => { setAudience(e.target.value); setPage(0); }}><option value="">All audiences</option>{audiences.map(a => <option key={a.slug}>{a.title}</option>)}</select></label>
       </div>
-      <p className="sr-only" role="status">{visible.length} project {visible.length === 1 ? "study" : "studies"} shown.</p>
-      <div className="library-grid library-results" key={discipline + "/" + audience}>{visible.map(item => <DirectoryCard key={item.title} image={item.image} type={item.tag + " · Concept"} title={item.title} text={item.summary} to={casePath(item.title)}/>)}</div>
-      {!visible.length && <div className="library-empty"><p>No studies match these selections.</p><button className="btn-ghost" onClick={() => { setAudience(""); setDiscipline(""); }}>Show all studies</button></div>}
+      <p className="sr-only" role="status">{published.loading ? "Loading portfolio" : total + " projects shown."}</p>
+      {published.error && <p role="status" className="mb-5">The portfolio could not be loaded. <button className="underline" onClick={published.retry}>Try again</button></p>}
+      <div className="library-grid library-results" key={discipline + "/" + audience + "/" + page}>
+        {published.rows.map(item => <DirectoryCard key={item.id} image={item.image} type={[item.category, "Portfolio"].filter(Boolean).join(" · ")} title={item.title} text={item.summary} to={portfolioUrl(item.id)}/>)}
+        {visibleExamples.map(item => <DirectoryCard key={item.title} image={item.image} type={item.tag + " · Concept"} title={item.title} text={item.summary} to={casePath(item.title)}/>)}
+      </div>
+      {!total && !published.loading && !published.error && <div className="library-empty"><p>No studies match these selections.</p><button className="btn-ghost" onClick={() => { setPage(0); setAudience(""); setDiscipline(""); }}>Show all studies</button></div>}
+      {(page > 0 || published.more) && <nav aria-label="Portfolio pages" className="mt-8 flex gap-4">
+        <button className="btn-ghost" disabled={!page || published.loading} onClick={() => setPage(v => v-1)}>Previous page</button>
+        <button className="btn-ghost" disabled={!published.more || published.loading} onClick={() => setPage(v => v+1)}>Next page</button>
+      </nav>}
     </section>
+  </>;
+}
+
+function PublishedStudy({ id }: { id: string }) {
+  const published = usePublishedWork({id,limit:1});
+  if (published.loading) return <div className="container-x py-20" role="status">Loading project…</div>;
+  if (published.error) return <section className="container-x py-20"><h1 className="text-3xl">Unable to load the project.</h1><button className="btn-ghost mt-4" onClick={published.retry}>Try again</button></section>;
+  const item = published.rows[0];
+  if (!item) return <EmptyPath to="/work" label="Browse work"/>;
+  return <>
+    <PageHero eyebrow={[item.category, "Portfolio"].filter(Boolean).join(" · ")} title={item.title} text={item.audience} image={item.image}/>
+    <Detail back="/work" label="All project studies">
+      <h2>About the project</h2><p className="whitespace-pre-line break-words">{item.summary}</p>
+      <Link className="btn-primary" to="/start-a-project">Discuss a similar project <ArrowRight size={16}/></Link>
+    </Detail>
   </>;
 }
 
 export function ProjectStudy() {
   const { slug: id } = useParams();
+  if (id && /^p-[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(id)) return <PublishedStudy id={id.slice(2)}/>;
   const item = work.find(w => slug(w.title) === id);
   if (!item) return <EmptyPath to="/work" label="Browse work"/>;
   const brief = briefs[item.tag];

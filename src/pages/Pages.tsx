@@ -1,3 +1,4 @@
+import { useSiteSettings } from "../lib/siteSettings";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowRight, Check, Target, Megaphone, Rocket } from "lucide-react";
@@ -320,11 +321,12 @@ export function About() {
 
 /* ---------- Start a Project ---------- */
 export function StartProject() {
+  const { contact_email } = useSiteSettings();
   return <>
     <PageHero eyebrow="Start a Project" title="Tell us about" accent="your project." text="Choose one service or bring several departments into the same brief."/>
     <Section><div className="grid gap-10 lg:grid-cols-5">
       <div className="lg:col-span-2"><Img src={IMG.about2} alt="" className="aspect-[4/3] w-full rounded-2xl"/>
-        <h2 className="mt-5 text-2xl">Prefer email?</h2><a href="mailto:hello@klexford.com" className="line-link mt-2">hello@klexford.com <ArrowRight size={15}/></a>
+        <h2 className="mt-5 text-2xl">Prefer email?</h2><a href={`mailto:${contact_email}`} className="line-link mt-2">{contact_email} <ArrowRight size={15}/></a>
       </div>
       <div className="lg:col-span-3"><ProjectInquiryForm/></div>
     </div></Section>
@@ -333,13 +335,14 @@ export function StartProject() {
 
 /* ---------- Legal & 404 ---------- */
 export function Legal({ kind }: { kind: "privacy" | "terms" }) {
+  const { contact_email } = useSiteSettings();
   const title = kind === "privacy" ? "Privacy Policy" : "Terms of Service";
   return (<>
-    <PageHero eyebrow="Legal" title={title} text={kind === "privacy" ? "How information is handled in this demonstration." : "Using the Klexford demonstration site."} />
+    <PageHero eyebrow="Legal" title={title} text={kind === "privacy" ? "How Klexford handles information submitted through this website." : "Using the Klexford website and workspace."} />
     <Section><div className="mx-auto max-w-2xl space-y-5 text-lg">
-      <h2 className="text-4xl">{kind === "privacy" ? "Browser storage" : "Demo workspace"}</h2>
-      <p>{kind === "privacy" ? "When online submission is available, Klexford receives the details you submit for project, application or visibility review. In email mode, forms save a local copy in your browser and you send the prepared email yourself. Demo account and invoice records use browser storage. Clearing site data removes local copies." : "The project examples, accounts and invoice workflows illustrate how the studio works. Use sample information when exploring the portals."}</p>
-      <a className="line-link" href="mailto:hello@klexford.com">Contact the studio <ArrowRight size={16}/></a>
+      <h2 className="text-4xl">{kind === "privacy" ? "Inquiries and workspace records" : "Using the workspace"}</h2>
+      <p>{kind === "privacy" ? "Klexford uses the information you submit to respond to your inquiry, review your application or manage your project. Authorized team members use the workspace to manage submissions and invoices. If you choose email, your email application opens a draft for you to review and send." : "Use your own account to access the team workspace. Keep your sign-in details and private invoice links secure. Contact the studio if you have a question about a project or invoice."}</p>
+      <a className="line-link" href={`mailto:${contact_email}`}>Contact the studio <ArrowRight size={16}/></a>
     </div></Section>
   </>);
 }

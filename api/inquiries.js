@@ -18,7 +18,7 @@ const isWebUrl = value => {
 function normalize(body) {
   if (!body || typeof body !== "object" || !Object.hasOwn(fields, body.kind)) return null;
   const { kind, requestId } = body;
-  if (typeof requestId !== "string" || !/^[0-9a-f-]{36}$/i.test(requestId)) return null;
+  if (typeof requestId !== "string" || !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(requestId)) return null;
   if (typeof body.name !== "string" || typeof body.email !== "string") return null;
   const name = body.name.trim(), email = body.email.trim().toLowerCase();
   if (!name || name.length > 150 || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
@@ -59,11 +59,15 @@ end
 if redis.call('SET', KEYS[3], ARGV[3], 'NX', 'EX', 30) then return 'reserved' end
 return 'busy'`;
 
-export default async function handler(req, res) {
-  const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  const destination = process.env.KLEXFORD_INQUIRY_WEBHOOK;
-  const live = Boolean(redisUrl && token && destination);
+export default async function handler(req, res, env = process.env) {
+  const redisUrl = env.UPSTASH_REDIS_REST_URL;
+  const token = env.UPSTASH_REDIS_REST_TOKEN;
+  const destination = env.KLEXFORD_INQUIRY_WEBHOOK;
+  const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL;
+  const secret = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
+  const databaseReady = Boolean(supabaseUrl && secret);
+  const crmReady = Boolean(redisUrl && token && destination);
+  const live = databaseReady || crmReady;
   const json = (code, data) => res.status(code).json(data);
   res.setHeader("Cache-Control", "no-store");
   if (req.method === "GET") return json(200, { live });
@@ -83,6 +87,28 @@ export default async function handler(req, res) {
   try { inquiry = normalize(typeof req.body === "string" ? JSON.parse(req.body) : req.body); } catch {}
   if (!inquiry) return json(400, { ok: false });
 
+  const ip = req.headers["x-vercel-forwarded-for"] || req.socket?.remoteAddress || "local";
+  if (databaseReady) {
+    try {
+      const response = await fetch(new URL("/rest/v1/rpc/record_inquiry", supabaseUrl), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: secret, ...(secret.startsWith("ey") ? { Authorization: "Bearer " + secret } : {}) },
+        body: JSON.stringify({
+          request_id: inquiry.requestId, inquiry_kind: inquiry.kind,
+          contact_name: inquiry.name, contact_email: inquiry.email, details: inquiry.data, source_hash: hash(String(ip)),
+        }),
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!response.ok) return json(503, { ok: false });
+      const state = await response.json();
+      if (state === "limited") return json(429, { ok: false });
+      if (state === "conflict") return json(409, { ok: false });
+      if (state !== "created" && state !== "duplicate") return json(503, { ok: false });
+      if (!crmReady) return json(state === "created" ? 201 : 200, { ok: true });
+    } catch {
+      return json(503, { ok: false });
+    }
+  }
   const redis = async command => {
     const response = await fetch(redisUrl, { method: "POST", headers: {
       Authorization: "Bearer " + token, "Content-Type": "application/json",
@@ -95,7 +121,6 @@ export default async function handler(req, res) {
   const recordKey = "klexford:inquiry:" + inquiry.requestId;
   const leaseKey = recordKey + ":lease";
   const lease = crypto.randomUUID();
-  const ip = req.headers["x-vercel-forwarded-for"] || req.socket?.remoteAddress || "local";
   const contactId = hash(inquiry.email);
   const time = new Date().toISOString();
   const payload = JSON.stringify({ ...inquiry, contactId, stage: "New Inquiry", receivedAt: time });
@@ -107,7 +132,7 @@ export default async function handler(req, res) {
     if (state !== "reserved") return json(503, { ok: false });
     try {
       const headers = { "Content-Type": "application/json", "Idempotency-Key": inquiry.requestId };
-      if (process.env.KLEXFORD_INQUIRY_WEBHOOK_TOKEN) headers.Authorization = "Bearer " + process.env.KLEXFORD_INQUIRY_WEBHOOK_TOKEN;
+      if (env.KLEXFORD_INQUIRY_WEBHOOK_TOKEN) headers.Authorization = "Bearer " + env.KLEXFORD_INQUIRY_WEBHOOK_TOKEN;
       const stored = await redis(["HGET", recordKey, "payload"]);
       const response = await fetch(destination, { method:"POST", headers, body:stored, redirect:"error", signal:AbortSignal.timeout(6000) });
       if (!response.ok) throw new Error("Receiver unavailable");

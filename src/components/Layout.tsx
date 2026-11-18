@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 import { audiences, services } from "../data";
+import { useSiteSettings } from "../lib/siteSettings";
 import Brand from "./Brand";
 import ReadingProgress from "./ReadingProgress";
 import "./navigation-motion.css";
@@ -19,6 +20,7 @@ const footerGroups = [
 ];
 
 export default function Layout() {
+  const { agency_name, contact_email } = useSiteSettings();
   const { pathname, hash } = useLocation();
   const header = useRef<HTMLElement>(null);
   const main = useRef<HTMLElement>(null);
@@ -37,8 +39,6 @@ export default function Layout() {
     else window.scrollTo({ top: 0, behavior: "instant" });
     if (changed && !hash) main.current?.focus({ preventScroll: true });
     lastPath.current = pathname;
-    const title = document.querySelector("main h1")?.textContent;
-    document.title = pathname === "/" ? "Klexford — Publishing, Digital & Growth Services" : `${title || "Studio"} | Klexford`;
     if (!changed || hash || !curtain.current?.animate) return;
     const motion = window.matchMedia("(prefers-reduced-motion: no-preference)");
     if (!motion.matches) return;
@@ -54,6 +54,10 @@ export default function Layout() {
     };
   }, [pathname, hash]);
   useEffect(() => {
+    const title = document.querySelector("main h1")?.textContent;
+    document.title = pathname === "/" ? agency_name + " — Publishing, Digital & Growth Services" : (title || "Studio") + " | " + agency_name;
+  }, [pathname, agency_name]);
+  useEffect(() => {
     const outside = (e: PointerEvent) => { if (!header.current?.contains(e.target as Node)) close(); };
     document.addEventListener("pointerdown", outside);
     return () => document.removeEventListener("pointerdown", outside);
@@ -68,7 +72,7 @@ export default function Layout() {
       if(active) { setGroup(""); active.focus(); } else { close(); header.current?.querySelector<HTMLButtonElement>(".menu-toggle")?.focus(); }
     }} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) close(); }}>
       <div className="mast-inner">
-        <Brand/>
+        <Brand name={agency_name}/>
         <nav id="agency-nav" className={'agency-nav ' + (open ? "is-open" : "")} aria-label="Main navigation">
           {groups.map(g => <div className="nav-group" key={g.route}>
             <button aria-expanded={group === g.name} aria-controls={'menu-'+g.route.slice(1)} onClick={() => setGroup(group === g.name ? "" : g.name)}>{g.name}<ChevronDown size={12}/></button>
@@ -87,9 +91,9 @@ export default function Layout() {
     </header>
     <main key={pathname} ref={main} id="content" tabIndex={-1} className={pathname === "/" ? undefined : "route-arrival"}><Outlet/></main>
     <footer className="site-footer"><div className="container-x">
-      <div className="footer-grid"><div><Brand/><p>Publishing, digital and growth services for authors and businesses.</p></div>
+      <div className="footer-grid"><div><Brand name={agency_name}/><p>Publishing, digital and growth services for authors and businesses.</p></div>
         {footerGroups.map(g => <div key={g.title}><h2>{g.title}</h2>{g.links.map(([name,url]) => <Link key={url} to={url}>{name}</Link>)}</div>)}
-      </div><div className="footer-meta">© {new Date().getFullYear()} Klexford</div>
+      </div><div className="footer-meta">© {new Date().getFullYear()} {agency_name} · <a href={`mailto:${contact_email}`}>{contact_email}</a></div>
     </div></footer>
   </>;
 }
