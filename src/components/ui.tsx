@@ -1,6 +1,6 @@
-import { useState, type ReactNode, type ImgHTMLAttributes } from "react";
+import { useId, useState, type ReactNode, type ImgHTMLAttributes } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Plus } from "lucide-react";
 
 export const Section = ({ className = "", children }: { className?: string; children: ReactNode }) => (
   <section className={`py-20 ${className}`}><div className="container-x">{children}</div></section>
@@ -42,14 +42,15 @@ export const CTA = ({ title = "What are you working on?", text = "Tell us about 
 
 export function FAQ({ items }: { items: { q: string; a: string }[] }) {
   const [open, setOpen] = useState(0);
+  const prefix = useId();
   return (
     <div className="mx-auto max-w-3xl divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white">
       {items.map((f, i) => (
         <div key={f.q}>
-          <button aria-expanded={open === i} onClick={() => setOpen(open === i ? -1 : i)} className="flex w-full items-center justify-between px-6 py-5 text-left font-semibold">
-            {f.q}<span className="text-xl text-brand-500">{open === i ? "−" : "+"}</span>
+          <button aria-controls={prefix + i} aria-expanded={open === i} onClick={() => setOpen(open === i ? -1 : i)} className="faq-toggle flex w-full items-center justify-between gap-4 px-6 py-5 text-left font-semibold">
+            {f.q}<Plus size={17} aria-hidden="true" className="shrink-0 text-brand-500"/>
           </button>
-          {open === i && <p className="px-6 pb-5 text-slate-600">{f.a}</p>}
+          <div id={prefix + i} className="faq-panel" aria-hidden={open !== i}><div><p className="px-6 pb-5 text-slate-600">{f.a}</p></div></div>
         </div>
       ))}
     </div>

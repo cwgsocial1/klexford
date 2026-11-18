@@ -1,4 +1,5 @@
-import { ArrowRight, ArrowUpRight, BookOpen, Check, Search } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Check, Search } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ProjectInquiryForm } from "../components/ProjectInquiryForm";
 import { audiences, IMG, plans, resources, services, steps, work } from "../data";
@@ -53,10 +54,48 @@ function AudienceIndex() {
 }
 
 function SelectedWork() {
+  const track = useRef<HTMLDivElement>(null);
+  const [edges, setEdges] = useState({ start: true, end: false });
+  const projects = [work[0], work[2], work[5], work[1], work[3], work[4]];
+
+  function updateEdges() {
+    const el = track.current;
+    if (!el) return;
+    const start = el.scrollLeft <= 2;
+    const end = el.scrollLeft + el.clientWidth >= el.scrollWidth - 2;
+    setEdges(old => old.start === start && old.end === end ? old : { start, end });
+  }
+
+  useEffect(() => {
+    updateEdges();
+    window.addEventListener("resize", updateEdges);
+    return () => window.removeEventListener("resize", updateEdges);
+  }, []);
+
+  function move(direction: -1 | 1) {
+    const el = track.current;
+    if (!el) return;
+    const positions = Array.from(el.children, card => (card as HTMLElement).offsetLeft);
+    const next = direction > 0
+      ? positions.find(left => left > el.scrollLeft + 2)
+      : positions.reverse().find(left => left < el.scrollLeft - 2);
+    if (next !== undefined) el.scrollTo({
+      left: next,
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+    });
+  }
+
   return (
     <section className="hs-wrap hs-pad" id="work" aria-labelledby="work-title">
-      <div className="hs-head"><h2 id="work-title">Selected work</h2><SectionLink to="/work">All project examples</SectionLink></div>
-      <div className="hs-work">{[work[0], work[2], work[5]].map(w => <Link to={casePath(w.title)} key={w.title}>
+      <div className="hs-head"><h2 id="work-title">Selected work</h2>
+        <div className="hs-work-nav"><SectionLink to="/work">All project examples</SectionLink>
+          <div className="hs-reel-controls">
+            <button aria-label="Previous project" aria-controls="project-reel" disabled={edges.start} onClick={() => move(-1)}><ArrowLeft size={17}/></button>
+            <button aria-label="Next project" aria-controls="project-reel" disabled={edges.end} onClick={() => move(1)}><ArrowRight size={17}/></button>
+          </div>
+        </div>
+      </div>
+      <div className="hs-work" id="project-reel" ref={track} onScroll={updateEdges}>{projects.map(w => <Link to={casePath(w.title)} key={w.title}>
         <div className="hs-work-image"><img src={w.image} loading="lazy" alt="" /><span><ArrowUpRight size={19}/></span></div>
         <p className="hs-meta">{w.tag} · Illustrative project</p><h3>{w.title}</h3><p>{w.summary}</p>
       </Link>)}</div>
@@ -118,7 +157,35 @@ function StudioAndResources() {
 }
 
 export default function HomeSections() {
-  return <div className="home-sections">
+  const sectionRoot = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const root = sectionRoot.current;
+    if (!root || !("IntersectionObserver" in window)) return;
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let observer: IntersectionObserver | undefined;
+
+    function observeEntrances() {
+      observer?.disconnect();
+      if (preference.matches || !root) return;
+      observer = new IntersectionObserver(entries => {
+        entries.forEach(({ target, isIntersecting }) => {
+          if (!isIntersecting) return;
+          target.classList.add("hs-arrived");
+          observer?.unobserve(target);
+        });
+      }, { threshold: 0.08 });
+      const panels = root.querySelectorAll(".hs-intro > div, .hs-head, .hs-services > a, .hs-audiences > a, .hs-book-copy, .hs-steps > li, .hs-plans > article, .hs-team > div, .hs-reading-list > a, .hs-visibility, .hs-inquiry > div:first-child");
+      panels.forEach(el => { if (!el.classList.contains("hs-arrived")) observer?.observe(el); });
+    }
+
+    observeEntrances();
+    preference.addEventListener("change", observeEntrances);
+    return () => {
+      observer?.disconnect();
+      preference.removeEventListener("change", observeEntrances);
+    };
+  }, []);
+  return <div className="home-sections" ref={sectionRoot}>
     <Introduction/><Departments/><AudienceIndex/><SelectedWork/><BookFeature/><Engagements/><StudioAndResources/>
     <section id="inquiry" className="hs-wash" aria-labelledby="inquiry-title"><div className="hs-wrap hs-pad hs-inquiry">
       <div><p className="hs-label">Start a project</p><h2 id="inquiry-title">Tell us what you’re building.</h2>

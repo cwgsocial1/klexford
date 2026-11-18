@@ -1,0 +1,82 @@
+.menu-glyph {
+  display: grid;
+  position: relative;
+  width: 19px;
+  height: 15px;
+  align-items: center;
+}
+
+.menu-glyph i {
+  grid-area: 1 / 1;
+  height: 2px;
+  width: 100%;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+.menu-glyph i:first-child { transform: translateY(-5px); }
+.menu-glyph i:last-child { transform: translateY(5px); }
+.menu-toggle[aria-expanded="true"] .menu-glyph i:first-child { transform: rotate(45deg); }
+.menu-toggle[aria-expanded="true"] .menu-glyph i:nth-child(2) { opacity: 0; }
+.menu-toggle[aria-expanded="true"] .menu-glyph i:last-child { transform: rotate(-45deg); }
+
+.masthead .nav-group > button[aria-expanded="true"] svg { transform: rotate(180deg); }
+.nav-panel[hidden] { display: none; }
+.masthead .nav-panel a:focus-visible { background: #fff3ed; }
+
+@media (min-width: 961px) {
+  .agency-nav > a { position: relative; }
+  .agency-nav > a::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 -5px;
+    height: 2px;
+    background: var(--red);
+    border-radius: 4px;
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+  .agency-nav > a:is(:hover, :focus-visible, [aria-current="page"])::after { transform: scaleX(1); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .masthead .nav-group > button svg,
+  .masthead .menu-glyph i,
+  .agency-nav > a::after {
+    transition: transform 220ms cubic-bezier(.22,.8,.24,1), opacity 160ms ease;
+  }
+
+  .masthead .nav-panel:not([hidden]) {
+    animation: kx-panel-in 210ms cubic-bezier(.22,.8,.24,1) both;
+    transform-origin: top center;
+  }
+
+  .masthead .nav-panel a {
+    transition: color 140ms ease, background-color 140ms ease, translate 140ms ease;
+  }
+
+  .masthead .nav-panel a:is(:hover, :focus-visible) { translate: 3px 0; }
+
+  /* Animate the page introduction while keeping the rest of the page and its
+     anchor destinations in their final positions. */
+  .route-arrival .page-intro > .container-x {
+    animation: kx-route-in 380ms cubic-bezier(.22,.8,.24,1);
+  }
+
+  @keyframes kx-panel-in {
+    from { opacity: 0; transform: translateY(-7px) scale(.985); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @keyframes kx-route-in {
+    from { opacity: .35; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+@media (max-width: 960px) and (prefers-reduced-motion: no-preference) {
+  .masthead .agency-nav.is-open {
+    transform-origin: top right;
+    animation: kx-panel-in 220ms cubic-bezier(.22,.8,.24,1) both;
+  }
+}

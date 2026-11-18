@@ -119,3 +119,14 @@ h1,h2,h3 { letter-spacing:-.035em; }
   .studio-objects { display:block; width:2em; height:.56em; margin:.32em auto 0; }
   .hero-summary { margin-top:30px; }
 }
+.faq-panel { display:grid; grid-template-rows:1fr; }
+.faq-panel[aria-hidden="true"] { grid-template-rows:0fr; visibility:hidden; }
+.faq-panel>div { min-height:0; overflow:hidden; }
+.faq-toggle[aria-expanded="true"] svg { transform:rotate(45deg); }
+@media(prefers-reduced-motion:no-preference){
+  .faq-panel { transition:grid-template-rows 240ms cubic-bezier(.2,.75,.3,1), visibility 0s; }
+  .faq-panel[aria-hidden="true"] { transition-delay:0s,240ms; }
+  .faq-toggle svg { transition:transform 220ms ease; }
+  .service-index a svg:last-child { transition:transform 180ms ease; }
+  .service-index a:is(:hover,:focus-visible) svg:last-child { transform:translate(3px,-3px); }
+}

@@ -1,6 +1,7 @@
+import StudioHero from "../components/StudioHero";
 import HomeSections from "./HomeSections";
 import { Link } from "react-router-dom";
-import { ArrowDown, ArrowUpRight, BookOpen, Code2, PenTool, Sparkles } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { audiences, services, team } from "../data";
 import { Img } from "../components/ui";
 
@@ -37,27 +38,6 @@ export function TeamGrid({ limit }: { limit?: number }) {
     </article>)}</div>;
 }
 
-function StudioObjects() {
-  return <span className="studio-objects" aria-hidden="true">
-    <i className="object-tile book"><BookOpen/></i>
-    <i className="object-tile code"><Code2/></i>
-    <i className="object-tile pen"><PenTool/></i>
-  </span>;
-}
-
 export default function Home() {
-  return <>
-    <div className="cover-stage">
-      <section className="hero-shell" aria-labelledby="hero-title">
-        <div className="hero-copy">
-          <p className="hero-tag"><Sparkles size={17} strokeWidth={2.2}/>Publishing, Digital &amp; Growth</p>
-          <h1 id="hero-title">Build your<br/><span className="hero-last-line">next chapter.<StudioObjects/></span></h1>
-          <p className="hero-summary">Book services, websites, automation and creative expertise for authors and businesses ready to move their work forward.</p>
-          <div className="hero-actions"><Link className="btn-primary" to="/start-a-project">Start a Project</Link><Link className="btn-ghost" to="/work">Explore Our Work</Link></div>
-        </div>
-        <a className="scroll-tab" href="#studio-intro">Scroll for more <span><ArrowDown size={13}/></span></a>
-      </section>
-    </div>
-    <HomeSections/>
-  </>;
+  return <><StudioHero/><HomeSections/></>;
 }

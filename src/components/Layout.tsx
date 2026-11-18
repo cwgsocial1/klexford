@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { ChevronDown, Menu, X } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { audiences, services } from "../data";
 import Brand from "./Brand";
+import "./navigation-motion.css";
 
 const pages = [["Our Work", "/work"], ["Team & Experts", "/experts"], ["About", "/about"]];
 const groups = [
@@ -18,13 +19,20 @@ const footerGroups = [
 export default function Layout() {
   const { pathname, hash } = useLocation();
   const header = useRef<HTMLElement>(null);
+  const main = useRef<HTMLElement>(null);
+  const lastPath = useRef(pathname);
   const [open, setOpen] = useState(false);
   const [group, setGroup] = useState("");
+  useEffect(() => {
+    if (open) header.current?.querySelector<HTMLButtonElement>(".nav-group > button")?.focus();
+  }, [open]);
   const close = () => { setOpen(false); setGroup(""); };
   useEffect(() => {
     close();
     if (hash) document.getElementById(hash.slice(1))?.scrollIntoView();
     else window.scrollTo({ top: 0, behavior: "instant" });
+    if (pathname !== lastPath.current && !hash) main.current?.focus({ preventScroll: true });
+    lastPath.current = pathname;
     const title = document.querySelector("main h1")?.textContent;
     document.title = pathname === "/" ? "Klexford — Publishing, Digital & Growth Services" : `${title || "Studio"} | Klexford`;
   }, [pathname, hash]);
@@ -45,18 +53,20 @@ export default function Layout() {
         <nav id="agency-nav" className={'agency-nav ' + (open ? "is-open" : "")} aria-label="Main navigation">
           {groups.map(g => <div className="nav-group" key={g.route}>
             <button aria-expanded={group === g.name} aria-controls={'menu-'+g.route.slice(1)} onClick={() => setGroup(group === g.name ? "" : g.name)}>{g.name}<ChevronDown size={12}/></button>
-            {group === g.name && <div className="nav-panel" id={'menu-'+g.route.slice(1)} onClick={close}>
+            <div className="nav-panel" hidden={group !== g.name} id={'menu-'+g.route.slice(1)} onClick={close}>
               <Link to={g.route}>Explore {g.name.toLowerCase()}</Link>
               {g.items.map(i => <Link key={i.route} to={i.route}>{i.title}</Link>)}
-            </div>}
+            </div>
           </div>)}
           {pages.map(([name,url]) => <NavLink key={url} to={url} onClick={close}>{name}</NavLink>)}
         </nav>
         <Link to="/start-a-project" className="nav-cta" onClick={close}>Start a Project</Link>
-        <button className="menu-toggle" aria-controls="agency-nav" aria-expanded={open} aria-label={open ? "Close menu" : "Open menu"} onClick={() => {setOpen(!open);setGroup("");}}>{open ? <X/> : <Menu/>}</button>
+        <button className="menu-toggle" aria-controls="agency-nav" aria-expanded={open} aria-label={open ? "Close menu" : "Open menu"} onClick={() => {setOpen(!open);setGroup("");}}>
+          <span className="menu-glyph" aria-hidden="true"><i/><i/><i/></span>
+        </button>
       </div>
     </header>
-    <main id="content"><Outlet/></main>
+    <main key={pathname} ref={main} id="content" tabIndex={-1} className={pathname === "/" ? undefined : "route-arrival"}><Outlet/></main>
     <footer className="site-footer"><div className="container-x">
       <div className="footer-grid"><div><Brand/><p>Publishing, digital and growth services for authors and businesses.</p></div>
         {footerGroups.map(g => <div key={g.title}><h2>{g.title}</h2>{g.links.map(([name,url]) => <Link key={url} to={url}>{name}</Link>)}</div>)}

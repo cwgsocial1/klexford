@@ -62,7 +62,7 @@ function EmptyPath({ to, label }: { to: string; label: string }) {
 
 function DirectoryCard({ image, type, title, text, to }: { image: string; type: string; title: string; text: string; to: string }) {
   return <Link to={to} className="library-card">
-    <Img className="library-card-image" src={image} alt=""/>
+    <div className="library-card-frame"><Img className="library-card-image" src={image} alt=""/></div>
     <div className="library-card-copy"><span>{type}</span><h2>{title}</h2><p>{text}</p><ArrowRight aria-hidden="true" size={19}/></div>
   </Link>;
 }
@@ -85,7 +85,8 @@ export function WorkDirectory() {
         <label>Discipline<select value={discipline} onChange={e => setDiscipline(e.target.value)}><option value="">All disciplines</option>{work.map(item => <option key={item.tag}>{item.tag}</option>)}</select></label>
         <label>Audience<select value={audience} onChange={e => setAudience(e.target.value)}><option value="">All audiences</option>{Array.from(new Set(Object.values(briefs).map(b => b.audience))).map(a => <option key={a}>{a}</option>)}</select></label>
       </div>
-      <div className="library-grid">{visible.map(item => <DirectoryCard key={item.title} image={item.image} type={item.tag + " · Concept"} title={item.title} text={item.summary} to={casePath(item.title)}/>)}</div>
+      <p className="sr-only" role="status">{visible.length} project {visible.length === 1 ? "study" : "studies"} shown.</p>
+      <div className="library-grid library-results" key={discipline + "/" + audience}>{visible.map(item => <DirectoryCard key={item.title} image={item.image} type={item.tag + " · Concept"} title={item.title} text={item.summary} to={casePath(item.title)}/>)}</div>
       {!visible.length && <div className="library-empty"><p>No studies match these selections.</p><button className="btn-ghost" onClick={() => { setAudience(""); setDiscipline(""); }}>Show all studies</button></div>}
     </section>
   </>;
@@ -142,11 +143,13 @@ const readings: Record<string, { group: string; intro: string; details: string[]
 
 export function ResourceDirectory() {
   const [group, setGroup] = useState("All resources");
+  const visible = resources.filter(item => group === "All resources" || readings[item.title].group === group);
   return <>
     <PageHero eyebrow="Resources" title="Field guides." text="Practical notes for preparing a book, building a digital presence and improving the way inquiries reach your team."/>
     <section className="library-content container-x" aria-label="Resource library">
       <div className="library-tabs">{["All resources", "Books & Authors", "Business & Digital"].map(label => <button key={label} aria-pressed={label === group} onClick={() => setGroup(label)}>{label}</button>)}</div>
-      <div className="library-grid">{resources.filter(r => group === "All resources" || readings[r.title].group === group).map(r => <DirectoryCard key={r.title} title={r.title} image={r.image} text={readings[r.title].intro} type={readings[r.title].group} to={resourcePath(r.title)}/>)}</div>
+      <p className="sr-only" role="status">{visible.length} resources shown.</p>
+      <div className="library-grid library-results" key={group}>{visible.map(r => <DirectoryCard key={r.title} title={r.title} image={r.image} text={readings[r.title].intro} type={readings[r.title].group} to={resourcePath(r.title)}/>)}</div>
     </section>
   </>;
 }
@@ -208,7 +211,10 @@ function ChecklistBody({ id }: { id: ChecklistId }) {
     <PageHero eyebrow="Interactive checklist" title={tool.title} text={tool.description}/>
     <Detail back="/tools" label="All tools">
       <div className="library-progress"><ClipboardList size={20}/><strong aria-live="polite">{completed.length} of {tool.tasks.length} complete</strong></div>
-      <progress max={tool.tasks.length} value={completed.length} aria-label="Checklist progress"/>
+      <div className="library-meter">
+        <progress className="sr-only" max={tool.tasks.length} value={completed.length} aria-label="Checklist progress"/>
+        <span aria-hidden="true" style={{ transform: `scaleX(${completed.length / tool.tasks.length})` }}/>
+      </div>
       <div className="library-task-list">{tool.tasks.map(task => <label key={task}><input type="checkbox" checked={completed.includes(task)} onChange={e => update(e.target.checked ? [...completed, task] : completed.filter(c => c !== task))}/><span>{task}</span></label>)}</div>
       {complete && <p className="library-success" role="status"><Check size={18}/> All checks complete.</p>}
       <div className="library-task-actions"><Link className="btn-primary" to={tool.to}>{tool.action}<ArrowRight size={16}/></Link><button disabled={!completed.length} className="library-back" onClick={() => update([])}>Reset checklist</button></div>
