@@ -17,7 +17,7 @@ const infrastructure = `
   create function auth.uid() returns uuid stable language sql as $$
     select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid;
   $$;
-  create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb);
+  create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb, email_confirmed_at timestamptz);
   create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
   create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text, unique(bucket_id,name));
   alter table storage.objects enable row level security;
@@ -40,7 +40,7 @@ const paymentMethods = {
 };
 const newObject = "insert into storage.objects(bucket_id,name) values ('portfolio-media',$1)";
 const intake = "select record_inquiry($1,'project','Client','client@example.test',$2,'test-source')";
-const insertUser = 'insert into auth.users values($1,$2,$3)';
+const insertUser = 'insert into auth.users(id,email,raw_user_meta_data) values($1,$2,$3)';
 
 test('workspace database authorization', async t => {
   const db = new PGlite();
@@ -62,9 +62,23 @@ test('workspace database authorization', async t => {
   // Upgrade a previously configured agency without guessing its bank currency.
   await rows('update payment_settings set bank_name=$1, account_name=$2, account_number=$3, payment_url=$4 where id=1',
     [legacyBank.bank_name, legacyBank.account_name, legacyBank.account_number, legacyBank.payment_url]);
+  const legacyExpert = uuid(4);
+  await rows(insertUser, [legacyExpert, 'legacy@example.test', { display_name: 'Legacy Specialist' }]);
+  await rows('update auth.users set email_confirmed_at=now() where id=$1', [legacyExpert]);
+  await rows('update profiles set active=true where id=$1', [legacyExpert]);
   for (const file of upgrades) {
     await db.exec(await readFile(new URL(file, migrations), 'utf8'));
   }
+
+  await t.test('backfills verified, explicitly named legacy experts without exposing private profile fields', async () => {
+    await as('anon');
+    assert.deepEqual(await rows('select * from list_team_experts()'), [
+      { display_name: 'Legacy Specialist', specialty: '', bio: '', portfolio_url: '' },
+    ]);
+    await denied('select * from profiles');
+    await db.exec('reset role');
+    await rows('delete from auth.users where id=$1', [legacyExpert]);
+  });
 
   await t.test('provisions inactive experts and restricts all profile mutations to administrators', async () => {
     for (const [id, name] of [[alice, 'Alice'], [bob, 'Bob']]) {
@@ -203,6 +217,19 @@ test('workspace database authorization', async t => {
   });
 
   await t.test('limits public intake to the service role, handles retries and respects immediate revocation', async () => {
+    const registration = uuid(601), legacyInquiry = uuid(602);
+    await as('service_role');
+    for (const [id,details] of [[registration, { expertRegistration: 'true' }], [legacyInquiry, { experience: 'Private inquiry' }]]) {
+      const name = id === registration ? 'z'.repeat(160) : 'Legacy name';
+      assert.equal(await value("select record_inquiry($1,'expert',$2,'expert@example.test',$3,'registration-source')",[id,name,details]), 'created');
+    }
+    await as('authenticated',alice);
+    assert.equal(await count('select id from inquiries where id=$1',[registration]),0);
+    assert.equal(await count("update inquiries set status='contacted' where id=$1 returning id",[registration]),0);
+    assert.equal(await count("update inquiries set status='contacted' where id=$1 returning id",[legacyInquiry]),1);
+    await as('authenticated',admin);
+    assert.equal(await count("update inquiries set status='contacted' where id=$1 returning id",[registration]),1);
+
     const request = [uuid(401), '{"message":"hello"}'];
     await as('anon');
     await denied(intake, request);
@@ -225,5 +252,68 @@ test('workspace database authorization', async t => {
     assert.equal(await count('select id from invoices'), 0);
     await denied("insert into testimonials(quote,client_name) values ('Quote','Client')");
     await denied(newObject, [cover]);
+  });
+
+
+  await t.test('requires administrator approval for the directory and workspace features', async () => {
+    const applicant = uuid(5), noName = uuid(6), invited = uuid(7);
+    const signUp = {
+      expert_registration: true, display_name: 'Indigo Writer', specialty: 'Publishing',
+      bio: 'I edit fiction.', portfolio_url: 'https://example.test/work',
+      availability: 'Private scheduling notes', time_zone: 'Africa/Lagos',
+      role: 'admin', active: true, permissions: grants, email_verified: true,
+    };
+    const listing = {
+      display_name: signUp.display_name, specialty: signUp.specialty, bio: signUp.bio,
+      portfolio_url: signUp.portfolio_url,
+    };
+    const directory = () => rows('select * from list_team_experts()');
+    const visible = async name => (await directory()).some(row => row.display_name === name);
+    await db.exec('reset role');
+    await rows(insertUser, [applicant, 'applicant@example.test', signUp]);
+    await rows(insertUser, [noName, 'private-label@example.test', { expert_registration: true, portfolio_url: 'javascript:bad()' }]);
+    await rows(insertUser, [invited, 'invited@example.test', { display_name: 'Invited Specialist' }]);
+    await rows('update auth.users set email_confirmed_at=now() where id = any($1::uuid[])', [[applicant,noName]]);
+    await as('authenticated',applicant);
+    const [profile] = await rows('select * from profiles where id=$1',[applicant]);
+    assert.deepEqual([profile.role, profile.active, profile.permissions], ['expert', false, []]);
+    assert.deepEqual([profile.expert_registration,profile.email_verified,profile.availability,profile.time_zone],
+      [true,true,signUp.availability,signUp.time_zone]);
+    assert.equal(await visible(signUp.display_name), false);
+    await denied("update profiles set has_directory_name=true,email_verified=true where id=$1",[applicant]);
+    assert.equal(await count("update profiles set active=true, specialty='changed' where id=$1 returning id",[applicant]),0);
+    await denied("insert into portfolio_work(title,summary) values ('Blocked','Pending')");
+    await denied("insert into testimonials(quote,client_name) values ('Blocked','Pending')");
+    await denied(newObject,[applicant+'/pending.webp']);
+    await as('anon');
+    assert.equal(await visible(signUp.display_name), false);
+    await as('authenticated',admin);
+    const privateNames = await rows('select has_directory_name,portfolio_url from profiles where id=$1',[noName]);
+    assert.deepEqual(privateNames,[{ has_directory_name:false, portfolio_url:'' }]);
+    await rows('update profiles set active=true where id=any($1::uuid[])',[[applicant,noName,invited]]);
+    await as('anon');
+    assert.deepEqual((await directory()).find(row => row.display_name===signUp.display_name),listing);
+    assert.equal(await visible('private-label'), false);
+    assert.equal(await visible('Invited Specialist'), false);
+    await db.exec('reset role');
+    await rows("update auth.users set raw_user_meta_data=raw_user_meta_data || $1::jsonb where id=$2",
+      [{ specialty:'Unreviewed update',role:'admin' },applicant]);
+    await rows('update auth.users set email_confirmed_at=now() where id=$1',[invited]);
+    await as('anon');
+    assert.equal(await visible('Invited Specialist'),true);
+    assert.equal((await directory()).find(row => row.display_name===signUp.display_name).specialty,signUp.specialty);
+    await as('authenticated',admin);
+    await denied("update profiles set portfolio_url='http://example.test' where id=$1",[applicant],'23514');
+    await rows("update profiles set display_name='private-label@example.test' where id=$1",[noName]);
+    await as('anon');
+    assert.equal(await visible('private-label@example.test'),false);
+    await as('authenticated',admin);
+    await rows("update profiles set display_name='@Editorial' where id=$1",[noName]);
+    await rows('update profiles set active=false where id=$1',[applicant]);
+    await as('anon');
+    assert.equal(await visible('@Editorial'),true);
+    assert.equal(await visible(signUp.display_name),false);
+    await as('authenticated',applicant);
+    await denied("insert into testimonials(quote,client_name) values ('Blocked','Disabled')");
   });
 });

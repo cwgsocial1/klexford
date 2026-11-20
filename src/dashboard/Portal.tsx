@@ -49,10 +49,13 @@ function Loading() {
 }
 function AccessIssue() {
   const auth = useAuth();
+  const pendingExpert = !auth.error && auth.profile?.role === "expert" && !auth.profile.active;
   return (
     <AccessPage>
-      <h1>Workspace access</h1>
-      <p>{auth.error || "An administrator needs to enable workspace access for this account."}</p>
+      <h1>{pendingExpert ? "Admin approval required" : "Workspace access"}</h1>
+      <p>{auth.error || (pendingExpert
+        ? "Your expert dashboard opens once a Klexford administrator approves your account. You can check your status here."
+        : "Contact a Klexford administrator about access to this workspace.")}</p>
       <button className="btn-primary" onClick={auth.reload}>
         Check access
       </button>
@@ -144,6 +147,7 @@ export function Login() {
       >
         {reset ? "Back to sign in" : "Forgot your password?"}
       </button>
+      {!reset && <Link className="line-link" to="/become-an-expert">Register as an expert</Link>}
     </AccessPage>
   );
 }

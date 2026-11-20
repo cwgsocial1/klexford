@@ -20,7 +20,7 @@ export function FormField({ label, children, wide = false }: { label: string; ch
 
 type InquiryMode = "email" | "live" | "edge";
 
-async function inquiryMode(): Promise<InquiryMode> {
+export async function inquiryMode(): Promise<InquiryMode> {
   const response = await fetch("/api/inquiries", { headers: { Accept: "application/json" }, cache: "no-store" });
   if (response.status === 404 || (response.ok && response.headers.get("content-type")?.includes("text/html"))) return "email";
   if (!response.ok) throw new Error("The inquiry service is unavailable.");

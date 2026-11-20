@@ -1,3 +1,4 @@
+import { ExpertRegistrationForm } from "../components/ExpertRegistrationForm";
 import { useSiteSettings } from "../lib/siteSettings";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -5,6 +6,7 @@ import { ArrowRight, Check, Target, Megaphone, Rocket } from "lucide-react";
 import { services, audiences, work, steps, IMG } from "../data";
 import { Section, Heading, Img, PageHero, CTA, FAQ, field } from "../components/ui";
 import { ServiceCards, AudienceCards, TeamGrid } from "./Home";
+import ExpertDirectory from "../components/ExpertDirectory";
 import { casePath } from "../lib/publicPaths";
 import { FormField, InquiryForm, ProjectInquiryForm } from "../components/ProjectInquiryForm";
 
@@ -246,10 +248,11 @@ export function AudienceDetail() {
 /* ---------- Experts ---------- */
 export function Experts() {
   return (<>
-    <PageHero eyebrow="Team & Experts" title="Specialists for" accent="each stage." text="Find the discipline your project needs. At scoping, we confirm the people responsible for delivery, review and handover.">
+    <PageHero eyebrow="Team & Experts" title="Specialists for" accent="each stage." text="Meet our experts, explore their portfolios and find the right specialty for your project.">
       <Link to="/become-an-expert" className="btn-primary">Become an Expert</Link><Link to="/login" className="btn-ghost">Expert Login</Link>
     </PageHero>
-    <Section><Heading eyebrow="Directory" pre="Explore by" accent="specialty."/><div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">{services.map(s =>
+    <ExpertDirectory/>
+    <Section className="bg-slate-50"><Heading eyebrow="Departments" pre="Explore by" accent="specialty."/><div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">{services.map(s =>
       <article key={s.slug} className="rounded-2xl border border-slate-200 bg-white p-7">
         <s.icon size={24} className="text-brand-500"/><h3 className="mt-4 text-xl font-semibold">{s.title}</h3>
         <p className="mt-3 text-slate-600">{s.items.join(" · ")}</p>
@@ -264,20 +267,13 @@ export function Experts() {
 
 export function BecomeExpert() {
   return <>
-    <PageHero eyebrow="Become an Expert" title="Bring your" accent="specialism." text="Apply to collaborate on publishing, websites, automation, campaigns or brand projects." image={IMG.agencies}/>
-    <Section><div className="grid gap-10 lg:grid-cols-5">
-      <div className="lg:col-span-2"><h2 className="text-4xl">Working together</h2>
-        <p className="mt-4 text-slate-600">Our coordination team reviews your experience, portfolio and availability against current project needs. Your application stays separate from the public team directory.</p>
+    <PageHero eyebrow="Become an Expert" title="Bring your" accent="specialism." text="Register to collaborate on publishing, websites, automation, campaigns or brand projects." image={IMG.agencies}/>
+    <Section><div className="grid items-start gap-10 lg:grid-cols-5">
+      <div className="lg:col-span-2"><h2 className="text-4xl">Join the expert team</h2>
+        <p className="mt-4 text-slate-600">Create your profile and confirm your email. An administrator reviews your registration and approves access to the expert workspace.</p>
+        <Link className="line-link mt-5" to="/expert">Already registered? Sign in <ArrowRight size={16}/></Link>
       </div>
-      <div className="lg:col-span-3"><InquiryForm kind="expert" action="Submit application" owner="Collaboration coordinator">
-        <FormField label="Full name"><input name="name" autoComplete="name" required className={field}/></FormField>
-        <FormField label="Email"><input type="email" name="email" autoComplete="email" required className={field}/></FormField>
-        <FormField label="Specialty"><select name="department" required defaultValue="" className={field}><option value="" disabled>Select a specialty</option>{services.map(s => <option key={s.slug} value={s.slug}>{s.title}</option>)}</select></FormField>
-        <FormField label="Portfolio or professional profile"><input type="url" name="portfolio" required placeholder="https://" className={field}/></FormField>
-        <FormField label="Availability"><input name="availability" required placeholder="Start date or hours per week" className={field}/></FormField>
-        <FormField label="Time zone (optional)"><input name="timeZone" className={field}/></FormField>
-        <FormField label="Relevant experience" wide><textarea name="experience" required rows={4} placeholder="Describe a project and your contribution." className={field}/></FormField>
-      </InquiryForm></div>
+      <div className="lg:col-span-3"><ExpertRegistrationForm /></div>
     </div></Section>
   </>;
 }

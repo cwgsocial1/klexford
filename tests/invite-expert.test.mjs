@@ -156,3 +156,70 @@ test("manual links are issued only to administrators for brand-new invitees and 
   assert.equal(ready.body.inviteUrl, action.href);
   assert.deepEqual(Object.keys(ready.body).sort(), ["inviteUrl", "message"]);
 });
+
+test("only a matching pending registration supplies profile details for an invitation", async t => {
+  const project = "https://project.example.test", origin = "https://studio.example.test";
+  const redirectTo = origin + "/account/password", token = "fixture-token";
+  const applicationId = "10000000-0000-4000-8000-000000000001";
+  const email = "applicant@example.test", name = "Applicant";
+  const application = { name, email, kind: "expert", status: "new", data: {
+    expertRegistration: "true", department: "website-development", experience: "I design websites.",
+    availability: "Weekdays", timeZone: "Africa/Lagos", portfolio: "",
+  } };
+  const body = { applicationId, delivery: "link", name, email };
+  const action = new URL("/auth/v1/verify", project);
+  action.search = new URLSearchParams({ token, type: "invite", redirect_to: redirectTo });
+  let generated, exists = false;
+  t.mock.method(globalThis, "fetch", async (url, init) => {
+    const target = new URL(url);
+    if (target.pathname === "/auth/v1/user") return Response.json({ id: "admin-id" });
+    if (target.pathname === "/rest/v1/profiles") {
+      return Response.json(target.searchParams.has("id") ? [{ role: "admin", active: true }] : exists ? [{ id: "existing" }] : []);
+    }
+    if (target.pathname === "/rest/v1/inquiries") {
+      assert.equal(target.searchParams.get("id"), "eq." + applicationId);
+      if (init.method === "PATCH") {
+        assert.equal(application.status, "new");
+        assert.equal(target.searchParams.get("status"), "eq.new");
+        assert.deepEqual(JSON.parse(init.body), { status: "contacted" });
+        application.status = "contacted";
+        return Response.json([{id: applicationId}]);
+      }
+      return Response.json([application]);
+    }
+    assert.equal(target.pathname, "/auth/v1/admin/generate_link");
+    generated = JSON.parse(init.body);
+    return Response.json({ email, user_metadata: generated.data, action_link: action.href,
+      hashed_token: token, verification_type: "invite", redirect_to: redirectTo });
+  });
+  async function submit(changes = {}) {
+    const res = { setHeader() {}, status(code) { this.code = code; return this; }, json(payload) { this.body = payload; } };
+    await inviteExpert({ method: "POST", headers: { host: new URL(origin).host, origin, authorization: "Bearer fixture", "content-type": "application/json" },
+      body: { ...body, ...changes } }, res, { SUPABASE_URL: project, SUPABASE_SECRET_KEY: "fixture", PUBLIC_SITE_ORIGIN: origin });
+    return res;
+  }
+  assert.equal((await submit({ delivery: "email" })).code, 400);
+  assert.equal((await submit({ name: "Different" })).code, 409);
+  assert.equal((await submit({ email: "different@example.test" })).code, 409);
+  application.kind = "project";
+  assert.equal((await submit()).code, 409);
+  application.kind = "expert";
+  delete application.data.expertRegistration;
+  assert.equal((await submit()).code, 409);
+  application.data.expertRegistration = "true";
+  exists = true;
+  assert.equal((await submit()).code, 409);
+  assert.equal(generated, undefined);
+  exists = false;
+  const result = await submit({ data: { active: true, bio: "Unreviewed" } });
+  assert.equal(result.code, 201);
+  assert.equal(result.body.inviteUrl, action.href);
+  assert.equal(generated.type, "invite");
+  assert.equal(generated.email, email);
+  const { invite_request_id, ...metadata } = generated.data;
+  assert.ok(invite_request_id);
+  assert.deepEqual(metadata, { display_name: name, expert_registration: true, specialty: "Website Design & Development",
+    bio: "I design websites.", portfolio_url: "", availability: "Weekdays", time_zone: "Africa/Lagos" });
+  assert.equal(application.status, "contacted");
+  assert.equal((await submit()).code, 409);
+});

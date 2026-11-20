@@ -1,5 +1,6 @@
 import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
+import { applicationMetadata } from "./expert-application.js";
 
 const owners = new Map([
   ["book-author-services", "Author services lead"], ["website-development", "Website lead"],
@@ -11,6 +12,8 @@ const fields = {
   visibility: ["reviewType", "customerType", "url", "goal"],
   expert: ["department", "portfolio", "availability", "experience"],
 };
+const applicationFields = new Set(["expertRegistration", "department", "experience", "portfolio", "availability", "timeZone", "source"]);
+const applicationEnvelope = new Set(["kind", "requestId", "name", "email", "data"]);
 const hash = value => createHash("sha256").update(value).digest("hex");
 const isWebUrl = value => {
   try { return ["http:", "https:"].includes(new URL(value).protocol); } catch { return false; }
@@ -22,11 +25,17 @@ function normalize(body) {
   if (typeof requestId !== "string" || !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(requestId)) return null;
   if (typeof body.name !== "string" || typeof body.email !== "string") return null;
   const name = body.name.trim(), email = body.email.trim().toLowerCase();
-  if (!name || name.length > 150 || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
+  const registration = kind === "expert" && body.data?.expertRegistration === "true";
+  if (!name || name.length > (registration ? 160 : 150) || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
   if (!body.data || typeof body.data !== "object" || Array.isArray(body.data)) return null;
   const entries = Object.entries(body.data);
   if (entries.length > 40 || entries.some(([k,v]) => !/^[a-z][a-zA-Z]{0,39}$/.test(k) || typeof v !== "string" || v.length > 6000)) return null;
   const data = Object.fromEntries(entries.map(([k,v]) => [k,v.trim()]));
+  if (Object.hasOwn(data, "expertRegistration")) {
+    if (!registration || Object.keys(body).some(key => !applicationEnvelope.has(key)) ||
+        entries.some(([key]) => !applicationFields.has(key)) || !applicationMetadata(name, data)) return null;
+    return { kind, requestId, name, email, data: { ...data, source: "/become-an-expert", owner: "Collaboration coordinator" } };
+  }
   if (fields[kind].some(key => !data[key]) || (data.projectUrl && !isWebUrl(data.projectUrl))) return null;
   let owner = "Project coordinator";
   if (kind === "project") {
@@ -87,6 +96,8 @@ export default async function handler(req, res, env = process.env) {
   let inquiry;
   try { inquiry = normalize(typeof req.body === "string" ? JSON.parse(req.body) : req.body); } catch {}
   if (!inquiry) return json(400, { ok: false });
+  const registration = inquiry.kind === "expert" && inquiry.data.expertRegistration === "true";
+  if (registration && !databaseReady) return json(503, { ok: false });
 
   const ip = (env.VERCEL && req.headers["x-vercel-forwarded-for"]) || req.socket?.remoteAddress || "local";
   if (databaseReady) {
@@ -105,7 +116,7 @@ export default async function handler(req, res, env = process.env) {
       if (state === "limited") return json(429, { ok: false });
       if (state === "conflict") return json(409, { ok: false });
       if (state !== "created" && state !== "duplicate") return json(503, { ok: false });
-      if (!crmReady) return json(state === "created" ? 201 : 200, { ok: true });
+      if (registration || !crmReady) return json(state === "created" ? 201 : 200, { ok: true });
     } catch {
       return json(503, { ok: false });
     }

@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { applicationMetadata } from "./expert-application.js";
 
 function invitationOrigin(env, requestOrigin) {
   const configured =
@@ -54,7 +55,11 @@ export default async function inviteExpert(req, res, env = process.env) {
   const email = typeof input?.email === "string" ? input.email.trim().toLowerCase() : "";
   const name = typeof input?.name === "string" ? input.name.trim() : "";
   const delivery = input?.delivery ?? "email";
+  const applicationId = input?.applicationId;
   if (delivery !== "email" && delivery !== "link") return fail(400, "Choose an invitation delivery method.");
+  if (applicationId !== undefined && (delivery !== "link" || typeof applicationId !== "string" ||
+      !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(applicationId)))
+    return fail(400, "Select an application for the private invitation link.");
   if (!name || name.length > 160 || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
     return fail(400, "Enter a name and a valid email address.");
 
@@ -80,6 +85,18 @@ export default async function inviteExpert(req, res, env = process.env) {
     if (error) return fail(503, "Could not verify workspace access.");
     if (profile?.role !== "admin" || !profile.active)
       return fail(403, "Only an active administrator can invite experts.");
+    let metadata = { display_name: name };
+    if (applicationId) {
+      const { data: application, error: applicationError } = await db.from("inquiries")
+        .select("kind,name,email,data,status").eq("id", applicationId).maybeSingle();
+      if (applicationError) return fail(503, "Could not check the registration request.");
+      if (application?.kind !== "expert" || application.status !== "new" ||
+          application.email !== email || application.name !== name)
+        return fail(409, "The registration request changed. Refresh the applications list.");
+      const details = applicationMetadata(application.name, application.data);
+      if (!details) return fail(409, "This application has incomplete or invalid registration details.");
+      metadata = details;
+    }
     const { data: existing, error: lookupError } = await db
       .from("profiles")
       .select("id")
@@ -96,7 +113,7 @@ export default async function inviteExpert(req, res, env = process.env) {
       const { data, error } = await db.auth.admin.generateLink({
         type: "invite",
         email,
-        options: { redirectTo, data: { display_name: name, invite_request_id: requestId } },
+        options: { redirectTo, data: { ...metadata, invite_request_id: requestId } },
       });
       if (error) return fail(error.status === 429 ? 429 : 502, "Supabase could not create the invitation link.");
       if (data.user?.email?.toLowerCase() !== email || data.user.email_confirmed_at ||
@@ -104,6 +121,15 @@ export default async function inviteExpert(req, res, env = process.env) {
         return fail(409, "This account already exists. Manage its access in the team directory.");
       const inviteUrl = checkedInviteUrl(data.properties, url, redirectTo);
       if (!inviteUrl) return fail(502, "Check the project’s Auth URL and invitation redirect settings.");
+      if (applicationId) {
+        // Account creation succeeded. Return the single-use link even if review status has changed.
+        const recorded = await db.from("inquiries").update({ status: "contacted" })
+          .eq("id", applicationId).eq("status", "new").select("id").maybeSingle()
+          .then(({ data, error }) => Boolean(data && !error), () => false);
+        const message = recorded ? "Invitation link created. Share it privately with the applicant." :
+          "Invitation link created. Share it privately, then refresh the application to check its review status.";
+        return res.status(201).json({ inviteUrl, message });
+      }
       return res.status(201).json({ inviteUrl, message: "Invitation link created. Choose this expert’s access below." });
     }
     const { error: inviteError } = await db.auth.admin.inviteUserByEmail(email, {
