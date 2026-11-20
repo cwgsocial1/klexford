@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ExternalLink, Pencil, Plus, Trash2 } from "lucide-react";
-import { audiences, work } from "../data";
+import { audiences, services, workDisciplines } from "../data";
 import { field, Label } from "../components/ui";
 import { mediaBucket, portfolioUrl, contentClient, quoteColumns, workColumns, type ClientQuote, type Publication, type WorkPost } from "../lib/portfolio";
 import { usePortal } from "./PortalContext";
@@ -9,7 +9,7 @@ import { usePortal } from "./PortalContext";
 type Kind = "work" | "testimonials";
 type Entry = Partial<WorkPost & ClientQuote> & {
   id: string;
-  author_id: string;
+  author_id: string | null;
   status: Publication;
   updated_at: string;
 };
@@ -21,6 +21,10 @@ const catalog = {
 const imageExtensions: Record<string, string> = {
   "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif",
 };
+const relatedServices = [
+  ...services,
+  { title: "Book Marketing", route: "/book-author-services/book-marketing" },
+];
 const pageSize = 20;
 
 function describeError(error: unknown) {
@@ -88,7 +92,12 @@ function EntryEditor({ kind, original, owner, publishAllowed, onClose, onSaved }
       }
       const imagePath = uploaded || (!removeCover && original?.image_path) || null;
       const changes = isWork
-        ? { title:value("title"), summary:value("summary"), category:value("category"), audience:value("audience"), image_path:imagePath, status }
+        ? {
+          title: value("title"), summary: value("summary"), category: value("category"), audience: value("audience"),
+          goal: value("goal"), scope: value("scope").split(/\r?\n/).map(line => line.trim()).filter(Boolean),
+          handover: value("handover"), service_path: value("service_path"), status,
+          image_path: imagePath, cover_asset: !imagePath && !removeCover ? original?.cover_asset || null : null,
+        }
         : { client_name:value("client_name"), client_title:value("client_title"), quote:value("quote"), status };
       const mutation = original
         ? client.from(table).update(changes).eq("id", original.id).eq("updated_at", original.updated_at)
@@ -120,7 +129,7 @@ function EntryEditor({ kind, original, owner, publishAllowed, onClose, onSaved }
     }
   }
 
-  const image = preview || (!removeCover && storedCover);
+  const image = preview || (!removeCover && (original?.image_path ? storedCover : original?.cover_asset));
   return <section className="max-w-3xl">
     <button type="button" disabled={saving} onClick={onClose} className="mb-5 inline-flex items-center gap-2 text-sm font-semibold"><ArrowLeft size={16}/> Back to {catalog[kind].heading.toLowerCase()}</button>
     <h1 className="mb-5 text-3xl font-bold">{original ? "Edit" : "Add"} {noun}</h1>
@@ -129,8 +138,8 @@ function EntryEditor({ kind, original, owner, publishAllowed, onClose, onSaved }
         {isWork ? <>
           <label className="block"><Label>Project title</Label><input name="title" required maxLength={180} defaultValue={original?.title} className={field}/></label>
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block"><Label>Discipline</Label><select name="category" defaultValue={original?.category || work[0].tag} className={field}>
-              {[...new Set([...work.map(item => item.tag), ...(original?.category ? [original.category] : [])])].map(name => <option key={name}>{name}</option>)}
+            <label className="block"><Label>Discipline</Label><select name="category" defaultValue={original?.category ?? workDisciplines[0]} className={field}>
+              <option value="">No discipline</option>{[...new Set([...workDisciplines, ...(original?.category ? [original.category] : [])])].map(name => <option key={name}>{name}</option>)}
             </select></label>
             <label className="block"><Label>Audience</Label><select name="audience" defaultValue={original?.audience || ""} className={field}>
               <option value="">General audience</option>{[...new Set([...audiences.map(a => a.title), ...(original?.audience ? [original.audience] : [])])].map(name => <option key={name}>{name}</option>)}
@@ -150,10 +159,27 @@ function EntryEditor({ kind, original, owner, publishAllowed, onClose, onSaved }
             </label>
             <p id="cover-hint" className="text-xs text-slate-500">JPEG, PNG, WebP or AVIF · Up to 8 MB</p>
             {image && <img src={image} alt="Project cover preview" className="max-h-52 max-w-full rounded-lg object-contain"/>}
-            {(file || (original?.image_path && !removeCover)) && <button type="button" className="text-sm font-semibold underline" onClick={() => {
+            {(file || ((original?.image_path || original?.cover_asset) && !removeCover)) && <button type="button" className="text-sm font-semibold underline" onClick={() => {
               setFile(null); setRemoveCover(true); if (fileInput.current) fileInput.current.value = "";
             }}>Remove cover</button>}
           </div>
+          <details open={Boolean(original?.legacy_slug || original?.goal || original?.scope?.length || original?.handover || original?.service_path)}
+            className="rounded-lg border border-slate-200 p-4">
+            <summary className="cursor-pointer text-sm font-semibold">Case study details</summary>
+            <div className="mt-4 space-y-4">
+              <label className="block"><Label>Project goal</Label><textarea name="goal" rows={2} maxLength={6000} defaultValue={original?.goal} className={field}/></label>
+              <label className="block"><Label>Proposed scope</Label><textarea name="scope" rows={5} maxLength={12000}
+                defaultValue={original?.scope?.join("\n")} aria-describedby="scope-hint" className={field}/></label>
+              <p id="scope-hint" className="text-xs text-slate-500">Enter one scope item per line.</p>
+              <label className="block"><Label>Review and handover</Label><textarea name="handover" rows={3} maxLength={6000} defaultValue={original?.handover} className={field}/></label>
+              <label className="block"><Label>Related service</Label><select name="service_path" defaultValue={original?.service_path || ""} className={field}>
+                <option value="">None</option>
+                {relatedServices.map(service => <option key={service.route} value={service.route}>{service.title}</option>)}
+                {original?.service_path && !relatedServices.some(service => service.route === original.service_path) &&
+                  <option value={original.service_path}>{original.service_path}</option>}
+              </select></label>
+            </div>
+          </details>
         </> : <>
           <label className="block"><Label>Client name</Label><input name="client_name" required maxLength={160} defaultValue={original?.client_name} className={field}/></label>
           <label className="block"><Label>Role or company (optional)</Label><input name="client_title" maxLength={250} defaultValue={original?.client_title} className={field}/></label>
@@ -255,7 +281,7 @@ function ContentManager({ kind }: {kind: Kind}) {
             <span className={'rounded-full px-2.5 py-1 text-xs font-semibold capitalize ' + (entry.status === "published" ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-600")}>{entry.status}</span></div>
             <p className="mt-1 line-clamp-2 break-words text-sm text-slate-600">{kind === "work" ? entry.summary : entry.quote}</p></div>
           <div className="flex flex-wrap items-center gap-4 text-sm">
-            {kind === "work" && entry.status === "published" && <Link to={portfolioUrl(entry.id)} aria-label={"View " + name + " on website"} className="inline-flex items-center gap-1"><ExternalLink size={15}/> View</Link>}
+            {kind === "work" && entry.status === "published" && <Link to={portfolioUrl(entry)} aria-label={"View " + name + " on website"} className="inline-flex items-center gap-1"><ExternalLink size={15}/> View</Link>}
             {editable && <><button type="button" aria-label={"Edit " + name} className="inline-flex items-center gap-1" onClick={() => { setNotice(""); setEditor({original:entry}); }}><Pencil size={15}/> Edit</button>
             <button type="button" aria-label={"Delete " + name} className="inline-flex items-center gap-1 text-rose-700" onClick={() => setPendingDelete(entry.id)}><Trash2 size={15}/> Delete</button></>}
           </div>

@@ -1,9 +1,11 @@
 import { defineConfig, loadEnv, type Plugin, type Connect } from "vite";
 import react from "@vitejs/plugin-react";
+import { createClient } from "@supabase/supabase-js";
 import inquiries from "./api/inquiries.js";
 import inviteExpert from "./api/invite-expert.js";
-import { audiences, resources, services, work } from "./src/data";
-import { casePath, checklistIds, resourcePath } from "./src/lib/publicPaths";
+import production from "./config/public-supabase.json";
+import { audiences, resources, services } from "./src/data";
+import { portfolioUrl, checklistIds, resourcePath } from "./src/lib/publicPaths";
 
 // Reject misplaced server keys before Vite can embed them in a browser bundle.
 function validateBrowserConfig(env: Record<string, string>) {
@@ -52,11 +54,30 @@ function localApi(env: Record<string, string>): Plugin {
   };
 }
 
-function sitemapPlugin(publicUrl: string | undefined, previewDeployment: boolean): Plugin {
+async function publishedProjectPaths(env: Record<string, string>, site: URL) {
+  const url = env.VITE_SUPABASE_URL || (site.origin === production.siteOrigin ? production.url : "");
+  const key = env.VITE_SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_ANON_KEY || (url === production.url ? production.publishableKey : "");
+  if (!url || !key) return [];
+  const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  const paths: string[] = [];
+  const size = 200;
+  for (let offset = 0; ; offset += size) {
+    const { data, error } = await db.from("portfolio_work").select("id,legacy_slug").eq("status", "published")
+      .order("id").range(offset, offset + size - 1).abortSignal(AbortSignal.timeout(10000));
+    if (error) {
+      console.warn("Could not list all published projects for the sitemap. " + error.message);
+      return paths;
+    }
+    paths.push(...data.map(portfolioUrl));
+    if (data.length < size) return paths;
+  }
+}
+
+function sitemapPlugin(publicUrl: string | undefined, previewDeployment: boolean, env: Record<string, string>): Plugin {
   return {
     name: "klexford-public-sitemap",
     apply: "build",
-    generateBundle() {
+    async generateBundle() {
       const rules = ["User-agent: *"];
       if (previewDeployment) {
         rules.push("Disallow: /");
@@ -73,7 +94,7 @@ function sitemapPlugin(publicUrl: string | undefined, previewDeployment: boolean
           "/resources", "/tools", "/tools/visibility-check", "/book-author-services/book-marketing",
           "/start-a-project", "/privacy", "/terms",
           ...services.map(s => s.route), ...audiences.map(a => a.route),
-          ...work.map(w => casePath(w.title)), ...resources.map(r => resourcePath(r.title)),
+          ...await publishedProjectPaths(env, site), ...resources.map(r => resourcePath(r.title)),
           ...checklistIds.map(id => "/tools/" + id)
         ];
         const locations = paths.map(path => `  <url><loc>${new URL(path, site).href}</loc></url>`);
@@ -91,5 +112,5 @@ export default defineConfig(({ mode }) => {
   validateBrowserConfig(env);
   const vercelHost = env.VERCEL_PROJECT_PRODUCTION_URL;
   const origin = env.PUBLIC_SITE_ORIGIN || (vercelHost ? "https://" + vercelHost : undefined);
-  return { plugins: [react(), localApi(env), sitemapPlugin(origin, env.VERCEL_ENV === "preview")] };
+  return { plugins: [react(), localApi(env), sitemapPlugin(origin, env.VERCEL_ENV === "preview", env)] };
 });

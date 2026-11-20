@@ -19,7 +19,9 @@ Confirm that the returned UUID and email belong to your account. Sign in at `/ad
 
 An expert can create or edit their own drafts with the corresponding management grant. The independent publication grant is also required to publish, edit, unpublish or remove already published entries. Admins can work across authors. Disabling an account or changing a grant takes effect at the next authorized request. Published entries remain visible until unpublished or removed. Previously issued signed image URLs can work until their short expiry.
 
-Upload JPEG, PNG, WebP or AVIF covers up to 8 MiB under the work author's UUID folder. Files are immutable, so replace a cover by uploading a new unique filename, updating the portfolio row, then deleting the old file. PostgREST cannot list invoices or inquiries for visitors. Recipients can view sent, overdue and paid invoices through a unique share token. Inquiry intake runs through the server-only RPC and is idempotent for retries with the same request ID.
+The six original illustrative studies are agency-owned records in `portfolio_work`. Administrators edit them at `/admin/portfolio`. Their original public links stay the same when titles change. Moving a study to draft removes it from public listings and hides the detail page.
+
+Upload JPEG, PNG, WebP or AVIF covers up to 8 MiB under the work author's UUID folder. For an agency-owned study, the editor uses the signed-in administrator's UUID folder. Files are immutable, so replace a cover by uploading a new unique filename, updating the portfolio row, then deleting the old file. PostgREST cannot list invoices or inquiries for visitors. Recipients can view sent, overdue and paid invoices through a unique share token. Inquiry intake runs through the server-only RPC and is idempotent for retries with the same request ID.
 
 
 ## Run database authorization tests

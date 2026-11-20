@@ -3,8 +3,8 @@ import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Check, Search } from "lu
 import { Link } from "react-router-dom";
 import { Img } from "../components/ui";
 import { ProjectInquiryForm } from "../components/ProjectInquiryForm";
-import { audiences, IMG, plans, resources, services, work } from "../data";
-import { casePath, resourcePath } from "../lib/publicPaths";
+import { audiences, IMG, plans, resources, services } from "../data";
+import { resourcePath } from "../lib/publicPaths";
 import { portfolioUrl, usePublishedQuotes, usePublishedWork } from "../lib/portfolio";
 import "../home-sections.css";
 import ProcessStory from "./ProcessStory";
@@ -58,12 +58,8 @@ function AudienceIndex() {
 
 function SelectedWork() {
   const track = useRef<HTMLDivElement>(null);
-  const [edges, setEdges] = useState({ start: true, end: false });
-  const {rows} = usePublishedWork({limit:6});
-  const projects = [
-    ...rows.map(row => ({ ...row, tag:row.category, path:portfolioUrl(row.id), type:"Portfolio" })),
-    ...[work[0], work[2], work[5], work[1], work[3], work[4]].map(row => ({ ...row, path:casePath(row.title), type:"Illustrative project" })),
-  ].slice(0,6);
+  const [edges, setEdges] = useState({ start: true, end: true });
+  const { rows, loading, error, retry } = usePublishedWork({ homepage: true, limit: 6 });
 
   function updateEdges() {
     const el = track.current;
@@ -96,15 +92,18 @@ function SelectedWork() {
     <section className="hs-wrap hs-pad" id="work" aria-labelledby="work-title">
       <div className="hs-head"><h2 id="work-title">Selected work</h2>
         <div className="hs-work-nav"><SectionLink to="/work">Browse all work</SectionLink>
-          <div className="hs-reel-controls">
+          {rows.length > 1 && !(edges.start && edges.end) && <div className="hs-reel-controls">
             <button aria-label="Previous project" aria-controls="project-reel" disabled={edges.start} onClick={() => move(-1)}><ArrowLeft size={17}/></button>
             <button aria-label="Next project" aria-controls="project-reel" disabled={edges.end} onClick={() => move(1)}><ArrowRight size={17}/></button>
-          </div>
+          </div>}
         </div>
       </div>
-      <div className="hs-work" id="project-reel" ref={track} onScroll={updateEdges}>{projects.map(w => <Link to={w.path} key={w.path}>
+      {loading && <p role="status">Loading projects…</p>}
+      {error && <p role="status">Projects couldn’t be loaded. <button className="underline" onClick={retry}>Try again</button></p>}
+      {!loading && !error && rows.length === 0 && <p>No projects are published yet.</p>}
+      <div className="hs-work" id="project-reel" ref={track} onScroll={updateEdges}>{rows.map(w => <Link to={portfolioUrl(w)} key={w.id}>
         <div className="hs-work-image">{w.image ? <Img src={w.image} loading="lazy" alt="" /> : <div className="media-fallback" aria-hidden="true"/>}<span><ArrowUpRight size={19}/></span></div>
-        <p className="hs-meta">{[w.tag, w.type].filter(Boolean).join(" · ")}</p><h3 className="break-words">{w.title}</h3><p className="line-clamp-3 break-words">{w.summary}</p>
+        <p className="hs-meta">{[w.category, w.legacy_slug ? "Illustrative project" : "Portfolio"].filter(Boolean).join(" · ")}</p><h3 className="break-words">{w.title}</h3><p className="line-clamp-3 break-words">{w.summary}</p>
       </Link>)}</div>
     </section>
   );

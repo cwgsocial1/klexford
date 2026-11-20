@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
 
 export const mediaBucket = "portfolio-media";
-export const portfolioUrl = (id: string) => "/work/p-" + id;
+export { portfolioUrl } from "./publicPaths";
 export type Publication = "draft" | "published";
 export interface WorkPost {
   id: string;
@@ -11,6 +11,12 @@ export interface WorkPost {
   audience: string;
   summary: string;
   image_path: string | null;
+  legacy_slug: string | null;
+  cover_asset: string | null;
+  goal: string;
+  scope: string[];
+  handover: string;
+  service_path: string;
   status: Publication;
   updated_at: string;
 }
@@ -23,7 +29,7 @@ export interface ClientQuote {
   updated_at: string;
 }
 export type DisplayWork = WorkPost & { image: string };
-export const workColumns = "id,title,summary,category,audience,image_path,status,updated_at";
+export const workColumns = "id,title,summary,category,audience,image_path,legacy_slug,cover_asset,goal,scope,handover,service_path,status,updated_at";
 export const quoteColumns = "id,client_name,client_title,quote,status,updated_at";
 
 export function contentClient() {
@@ -40,14 +46,14 @@ async function withCovers(rows: WorkPost[]): Promise<DisplayWork[]> {
       if (item.path && item.signedUrl && !item.error) urls.set(item.path, item.signedUrl);
     }
   }
-  return rows.map(row => ({ ...row, image: urls.get(row.image_path || "") || "" }));
+  return rows.map(row => ({ ...row, image: row.image_path ? urls.get(row.image_path) || "" : row.cover_asset || "" }));
 }
 
-export function usePublishedWork({ id, category, audience, limit = 12, page = 0 }: {
-  id?: string; category?: string; audience?: string; limit?: number; page?: number;
+export function usePublishedWork({ id, legacySlug, category, categories, audience, homepage = false, limit = 12, page = 0 }: {
+  id?: string; legacySlug?: string; category?: string; categories?: string[]; audience?: string; homepage?: boolean; limit?: number; page?: number;
 } = {}) {
   const [reload, setReload] = useState(0);
-  const queryKey = JSON.stringify([id, category, audience, limit, page, reload]);
+  const queryKey = JSON.stringify([id, legacySlug, category, categories, audience, homepage, limit, page, reload]);
   const [result, setResult] = useState<{key: string; rows: DisplayWork[]; more: boolean; error: boolean} | null>(null);
   useEffect(() => {
     if (!supabase) return;
@@ -55,8 +61,11 @@ export function usePublishedWork({ id, category, audience, limit = 12, page = 0 
     async function load() {
       let query = contentClient().from("portfolio_work").select(workColumns).eq("status", "published");
       if (id) query = query.eq("id", id);
+      if (legacySlug) query = query.eq("legacy_slug", legacySlug);
       if (category) query = query.eq("category", category);
+      if (categories?.length) query = query.in("category", categories);
       if (audience) query = query.eq("audience", audience);
+      if (homepage) query = query.order("homepage_position", { ascending: true, nullsFirst: true });
       const offset = page * limit;
       const { data, error } = await query.order("created_at", { ascending: false }).order("id").range(offset, offset + limit);
       if (error) throw error;
@@ -67,14 +76,14 @@ export function usePublishedWork({ id, category, audience, limit = 12, page = 0 
       if (current) setResult({ key: queryKey, rows: [], more: false, error: true });
     });
     return () => { current = false; };
-  }, [queryKey, id, category, audience, limit, page]);
+  }, [queryKey]);
 
   const latest = result?.key === queryKey ? result : null;
   return {
     rows: latest?.rows || [],
     loading: !!supabase && !latest,
     more: !!latest?.more,
-    error: !!latest?.error,
+    error: !supabase || !!latest?.error,
     retry: () => setReload(n => n + 1),
   };
 }

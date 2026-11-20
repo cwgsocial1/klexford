@@ -62,14 +62,7 @@ export const audiences: Audience[] = [
     desc: "Business websites, visibility, branding and organised customer inquiries." },
 ];
 
-export const work: { title: string; tag: string; tone: string; image: string; summary: string }[] = [
-  { title: "Debut novel launch campaign", tag: "Book Marketing", tone: "from-brand-500 to-indigo-600" , image: IMG.bookLaunch, summary: "Positioning review, launch plan, email sequence and promotional assets for a debut novelist." },
-  { title: "Author website & newsletter", tag: "Website", tone: "from-emerald-500 to-teal-600" , image: IMG.authors_publishers, summary: "A fast author site with book pages, newsletter signup and reader journey." },
-  { title: "Cleaning company booking CRM", tag: "Automation", tone: "from-amber-500 to-orange-600" , image: IMG.home_services, summary: "Estimate requests flow into a GoHighLevel pipeline with automatic follow-up and reminders." },
-  { title: "Non-fiction cover & interior", tag: "Book Design", tone: "from-fuchsia-500 to-purple-600" , image: IMG.book_author_services, summary: "Cover design, paperback interior and EPUB conversion for a business book." },
-  { title: "Local clinic SEO & ads", tag: "Growth Studio", tone: "from-sky-500 to-blue-700" , image: IMG.growth_studio, summary: "Local SEO clean-up and a paid search campaign with monthly reporting." },
-  { title: "Coach brand identity", tag: "Branding", tone: "from-rose-500 to-pink-600" , image: IMG.branding_creative, summary: "Logo, colour palette, typography and social templates for a coaching brand." },
-];
+export const workDisciplines = ["Book Marketing", "Website", "Automation", "Book Design", "Growth Studio", "Branding"];
 
 export const steps = [
   { n: "01", title: "Understand", desc: "We learn your goals, audience, timeline and what already exists." },

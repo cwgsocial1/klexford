@@ -54,7 +54,9 @@ In Supabase **Authentication → URL Configuration**, set the site URL and allow
 - **Visitors** can browse approved, email-verified specialists at `/experts`. Public profiles show their display name, specialty, bio and optional portfolio. Email, availability and time zone stay private. Visitors see published projects on the homepage and `/work`. Each project has its own shareable page. Published testimonials appear on the homepage. Illustrative projects are labelled separately. To remove a published entry from the website while keeping it in the workspace, save it as a draft.
 - **Clients** can open the private share link for an issued invoice. Under **Admin → Settings**, administrators choose which payment methods appear by filling in the bank transfer details, crypto wallet details, or hosted payment link. Bank settings include the receiving currency and routing instructions. Crypto settings identify the coin, network, receiving address, and any memo or transfer instructions. Updating these settings also updates outstanding invoice links. Administrators record confirmed payments in the portal.
 
-Earlier demonstration accounts and browser-local records are separate from Supabase. Create real accounts for the team. The public services, audience pages, sample projects and editorial copy are maintained in `src/data.ts`.
+Under **Admin → Portfolio**, administrators can edit all six original illustrative projects and any projects added by the team. Changes to the title, description, cover, discipline, audience, or case study details carry through to the public website. The original project links stay the same when a title changes.
+
+Earlier demonstration accounts and browser-local records are separate from Supabase. Create real accounts for the team. Public services, audience pages and editorial copy are maintained in `src/data.ts`.
 
 ## Inquiry delivery
 

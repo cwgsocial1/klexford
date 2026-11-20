@@ -2,57 +2,10 @@ import { useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, BookOpen, Check, ClipboardList, Globe, Search } from "lucide-react";
 import { PageHero, Img } from "../components/ui";
-import { audiences, resources, work } from "../data";
+import { audiences, resources, workDisciplines } from "../data";
 import { portfolioUrl, usePublishedWork } from "../lib/portfolio";
-import { casePath, resourcePath, slug, checklistIds } from "../lib/publicPaths";
+import { resourcePath, slug, checklistIds } from "../lib/publicPaths";
 import "./Library.css";
-
-type Brief = {
-  audience: string;
-  goal: string;
-  scope: string[];
-  check: string;
-  service: string;
-};
-
-const briefs: Record<string, Brief> = {
-  "Book Marketing": {
-    audience: "Authors & Publishers", service: "/book-author-services/book-marketing",
-    goal: "Give a debut novelist a clear introduction to their book and a practical plan for reaching readers around release.",
-    scope: ["Identify the book’s genre, comparable titles and the promise on the first page.", "Draft a launch email, a sample chapter invitation and a schedule for the author’s existing channels.", "Separate the author’s approvals from the studio’s production tasks in a shared calendar."],
-    check: "Before release, test the sample download and retailer links. After release, review qualified visits and email engagement where the author has access."
-  },
-  Website: {
-    audience: "Authors & Publishers", service: "/website-development",
-    goal: "Give readers one place to find an author’s books, read a sample and choose whether to receive the next newsletter.",
-    scope: ["Map the reader journey from the author bio to a book detail page.", "Give each book a synopsis, accessible sample and clearly named purchase destinations.", "Connect the signup form to a welcome email and document the handover."],
-    check: "Try the reader journey on a phone. Use a test subscription to check the welcome message and preference controls."
-  },
-  Automation: {
-    audience: "Home-Service Businesses", service: "/crm-automation",
-    goal: "Help a cleaning business track estimate requests from the first website visit through booking.",
-    scope: ["Collect the service type, preferred date and contact details on one form.", "Assign each request to a coordinator and show its current stage in a booking pipeline.", "Send a reminder only when a reply is due and stop the sequence once the client responds."],
-    check: "Walk a sample inquiry through request, estimate, reply and booking. Check for duplicate reminders when the same contact returns."
-  },
-  "Book Design": {
-    audience: "Authors & Publishers", service: "/book-author-services",
-    goal: "Carry a business author’s visual identity from a print cover to a readable digital edition.",
-    scope: ["Agree on trim size, target reader, cover hierarchy and final manuscript.", "Develop a cover direction and a sample chapter before laying out the full book.", "Prepare a print-ready interior and a reflowable EPUB with chapter navigation."],
-    check: "Inspect the print proof at actual size, then check navigation and typography on two screen sizes."
-  },
-  "Growth Studio": {
-    audience: "Appointment-Based Businesses", service: "/growth-studio",
-    goal: "Help prospective visitors find the right clinic service and understand how to request an appointment.",
-    scope: ["Review service pages for clear location, hours and booking information.", "Agree on a search campaign brief, approved copy, geographic focus and spending limit.", "Separate booking requests from routine page visits in the reporting plan."],
-    check: "Test the appointment journey and agree on a reporting period. Review campaign costs alongside confirmed inquiries."
-  },
-  Branding: {
-    audience: "Creators & Personal Brands", service: "/branding-creative",
-    goal: "Give a coach a recognisable identity across a service page, presentation and social posts.",
-    scope: ["Review the coach’s positioning and choose one visual direction.", "Develop a wordmark, colour palette and practical type hierarchy.", "Apply the identity to a service page mockup and reusable post templates."],
-    check: "Check legibility at mobile size, test each logo variation on light and dark backgrounds, and package approved source files."
-  }
-};
 
 function EmptyPath({ to, label }: { to: string; label: string }) {
   return <PageHero eyebrow="Page unavailable" title="We couldn’t find that page." text="Choose an item from the directory to continue.">
@@ -79,21 +32,18 @@ export function WorkDirectory() {
   const [audience, setAudience] = useState("");
   const [page, setPage] = useState(0);
   const published = usePublishedWork({ category: discipline, audience, page });
-  const examples = work.filter(item => (!discipline || item.tag === discipline) && (!audience || briefs[item.tag].audience === audience));
-  const visibleExamples = page === 0 ? examples : [];
-  const total = published.rows.length + visibleExamples.length;
+  const total = published.rows.length;
   return <>
     <PageHero eyebrow="Our work" title="Project studies." text="Browse the studio’s portfolio and explore illustrative briefs across publishing, brand and digital."/>
     <section className="library-content container-x" aria-label="Project studies">
       <div className="library-filters">
-        <label>Discipline<select value={discipline} onChange={e => { setDiscipline(e.target.value); setPage(0); }}><option value="">All disciplines</option>{work.map(item => <option key={item.tag}>{item.tag}</option>)}</select></label>
+        <label>Discipline<select value={discipline} onChange={e => { setDiscipline(e.target.value); setPage(0); }}><option value="">All disciplines</option>{workDisciplines.map(name => <option key={name}>{name}</option>)}</select></label>
         <label>Audience<select value={audience} onChange={e => { setAudience(e.target.value); setPage(0); }}><option value="">All audiences</option>{audiences.map(a => <option key={a.slug}>{a.title}</option>)}</select></label>
       </div>
       <p className="sr-only" role="status">{published.loading ? "Loading portfolio" : total + " projects shown."}</p>
       {published.error && <p role="status" className="mb-5">The portfolio could not be loaded. <button className="underline" onClick={published.retry}>Try again</button></p>}
       <div className="library-grid library-results" key={discipline + "/" + audience + "/" + page}>
-        {published.rows.map(item => <DirectoryCard key={item.id} image={item.image} type={[item.category, "Portfolio"].filter(Boolean).join(" · ")} title={item.title} text={item.summary} to={portfolioUrl(item.id)}/>)}
-        {visibleExamples.map(item => <DirectoryCard key={item.title} image={item.image} type={item.tag + " · Concept"} title={item.title} text={item.summary} to={casePath(item.title)}/>)}
+        {published.rows.map(item => <DirectoryCard key={item.id} image={item.image} type={[item.category, item.legacy_slug ? "Concept" : "Portfolio"].filter(Boolean).join(" · ")} title={item.title} text={item.summary} to={portfolioUrl(item)}/>)}
       </div>
       {!total && !published.loading && !published.error && <div className="library-empty"><p>No studies match these selections.</p><button className="btn-ghost" onClick={() => { setPage(0); setAudience(""); setDiscipline(""); }}>Show all studies</button></div>}
       {(page > 0 || published.more) && <nav aria-label="Portfolio pages" className="mt-8 flex gap-4">
@@ -104,34 +54,23 @@ export function WorkDirectory() {
   </>;
 }
 
-function PublishedStudy({ id }: { id: string }) {
-  const published = usePublishedWork({id,limit:1});
+export function ProjectStudy() {
+  const { slug: path = "" } = useParams<{ slug: string }>();
+  const byId = /^p-[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(path);
+  const published = usePublishedWork(byId ? { id: path.slice(2), limit: 1 } : { legacySlug: path, limit: 1 });
   if (published.loading) return <div className="container-x py-20" role="status">Loading project…</div>;
   if (published.error) return <section className="container-x py-20"><h1 className="text-3xl">Unable to load the project.</h1><button className="btn-ghost mt-4" onClick={published.retry}>Try again</button></section>;
   const item = published.rows[0];
   if (!item) return <EmptyPath to="/work" label="Browse work"/>;
   return <>
-    <PageHero eyebrow={[item.category, "Portfolio"].filter(Boolean).join(" · ")} title={item.title} text={item.audience} image={item.image}/>
+    <PageHero eyebrow={[item.category, item.legacy_slug ? "Illustrative brief" : "Portfolio"].filter(Boolean).join(" · ")}
+      title={item.title} text={item.goal || item.audience} image={item.image}/>
     <Detail back="/work" label="All project studies">
       <h2>About the project</h2><p className="whitespace-pre-line break-words">{item.summary}</p>
-      <Link className="btn-primary" to="/start-a-project">Discuss a similar project <ArrowRight size={16}/></Link>
-    </Detail>
-  </>;
-}
-
-export function ProjectStudy() {
-  const { slug: id } = useParams();
-  if (id && /^p-[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(id)) return <PublishedStudy id={id.slice(2)}/>;
-  const item = work.find(w => slug(w.title) === id);
-  if (!item) return <EmptyPath to="/work" label="Browse work"/>;
-  const brief = briefs[item.tag];
-  return <>
-    <PageHero eyebrow={item.tag + " · Illustrative brief"} title={item.title} text={brief.goal} image={item.image}/>
-    <Detail back="/work" label="All project studies">
-      <h2>Who it’s for</h2><p>{brief.audience}</p>
-      <h2>Proposed scope</h2><ul>{brief.scope.map(task => <li key={task}>{task}</li>)}</ul>
-      <h2>Review and handover</h2><p>{brief.check}</p>
-      <Link className="btn-primary" to={brief.service}>Explore this service <ArrowRight size={16}/></Link>
+      {item.goal && item.audience && <><h2>Who it’s for</h2><p>{item.audience}</p></>}
+      {item.scope.length > 0 && <><h2>Proposed scope</h2><ul>{item.scope.map((task, index) => <li key={index}>{task}</li>)}</ul></>}
+      {item.handover && <><h2>Review and handover</h2><p className="whitespace-pre-line break-words">{item.handover}</p></>}
+      <Link className="btn-primary" to={item.service_path || "/start-a-project"}>{item.service_path ? "Explore this service" : "Discuss a similar project"} <ArrowRight size={16}/></Link>
     </Detail>
   </>;
 }

@@ -3,11 +3,11 @@ import { useSiteSettings } from "../lib/siteSettings";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowRight, Check, Target, Megaphone, Rocket } from "lucide-react";
-import { services, audiences, work, steps, IMG } from "../data";
+import { services, audiences, steps, IMG } from "../data";
 import { Section, Heading, Img, PageHero, CTA, FAQ, field } from "../components/ui";
 import { ServiceCards, AudienceCards, TeamGrid } from "./Home";
 import ExpertDirectory from "../components/ExpertDirectory";
-import { casePath } from "../lib/publicPaths";
+import { portfolioUrl, usePublishedWork } from "../lib/portfolio";
 import { FormField, InquiryForm, ProjectInquiryForm } from "../components/ProjectInquiryForm";
 
 /* ---------- Services ---------- */
@@ -95,13 +95,18 @@ const departmentGuides: Record<string, DepartmentGuide> = {
 };
 
 function ProjectExamples({ tags }: { tags: string[] }) {
+  const { rows, loading, error, retry } = usePublishedWork({ categories: tags, limit: 4 });
+  if (!loading && !error && !rows.length) return null;
   return <Section className="bg-slate-50">
-    <Heading eyebrow="Illustrative briefs" pre="Explore the" accent="project scope."/>
-    <div className="mt-8 grid gap-5 md:grid-cols-2">{work.filter(w => tags.includes(w.tag)).map(w =>
-      <Link className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 hover:border-brand-500" key={w.title} to={casePath(w.title)}>
-        <Img src={w.image} alt="" className="h-20 w-20 shrink-0 rounded-xl"/><div><small>{w.tag}</small><h3 className="text-lg font-semibold">{w.title}</h3></div><ArrowRight size={17} className="ml-auto shrink-0"/>
+    <Heading eyebrow="Related work" pre="Explore the" accent="project scope."/>
+    {loading && <p className="mt-8" role="status">Loading related projects…</p>}
+    {error && <p className="mt-8" role="status">Related projects couldn’t be loaded. <button className="underline" onClick={retry}>Try again</button></p>}
+    {rows.length > 0 && <div className="mt-8 grid gap-5 md:grid-cols-2">{rows.map(w =>
+      <Link className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 hover:border-brand-500" key={w.id} to={portfolioUrl(w)}>
+        {w.image && <Img src={w.image} alt="" className="h-20 w-20 shrink-0 rounded-xl"/>}
+        <div className="min-w-0 break-words"><small>{[w.category, w.legacy_slug ? "Illustrative brief" : "Portfolio"].filter(Boolean).join(" · ")}</small><h3 className="text-lg font-semibold">{w.title}</h3></div><ArrowRight size={17} className="ml-auto shrink-0"/>
       </Link>
-    )}</div>
+    )}</div>}
   </Section>;
 }
 

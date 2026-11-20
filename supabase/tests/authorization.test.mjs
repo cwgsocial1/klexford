@@ -59,6 +59,9 @@ test('workspace database authorization', async t => {
   await rows(insertUser, [admin, 'admin@example.test', { role: 'admin' }]);
   const [initial, ...upgrades] = (await readdir(migrations)).filter(file => file.endsWith('.sql')).sort();
   await db.exec(await readFile(new URL(initial, migrations), 'utf8'));
+  const existingWork = uuid(100);
+  await rows(`insert into portfolio_work(id,author_id,title,summary,status,created_at)
+    values($1,$2,'Existing project','Original copy','published','2024-01-01')`, [existingWork, admin]);
   // Upgrade a previously configured agency without guessing its bank currency.
   await rows('update payment_settings set bank_name=$1, account_name=$2, account_number=$3, payment_url=$4 where id=1',
     [legacyBank.bank_name, legacyBank.account_name, legacyBank.account_number, legacyBank.payment_url]);
@@ -103,6 +106,59 @@ test('workspace database authorization', async t => {
     await denied('delete from auth.users where id=$1', [alice]);
   });
 
+  await t.test('imports the six original studies and lets admins edit, unpublish and replace their covers', async () => {
+    await as('anon');
+    const projects = await rows('select * from portfolio_work order by created_at desc');
+    assert.deepEqual(projects.map(row => row.legacy_slug), [
+      null, 'debut-novel-launch-campaign', 'author-website-newsletter', 'cleaning-company-booking-crm',
+      'non-fiction-cover-interior', 'local-clinic-seo-ads', 'coach-brand-identity',
+    ]);
+    assert.equal(projects[0].id, existingWork);
+    assert.equal(projects[0].summary, 'Original copy');
+    assert.equal(projects[0].author_id, admin);
+    for (const project of projects.slice(1)) {
+      assert.equal(project.author_id, null);
+      assert.equal(project.status, 'published');
+      assert.ok(project.goal && project.handover && project.service_path);
+      assert.equal(project.scope.length, 3);
+      assert.match(project.cover_asset, /^\/images\/.+\.jpg$/);
+    }
+    const { id, legacy_slug } = projects[1];
+    const newCover = admin + '/revised-cover.webp';
+    await as('authenticated', admin);
+    await rows('update profiles set permissions=$1 where id=$2', [[...grants, 'work.publish'], alice]);
+    await as('authenticated', alice);
+    assert.equal(await count("update portfolio_work set goal='Other' where id=$1 returning id", [id]), 0);
+    assert.equal(await count('delete from portfolio_work where id=$1 returning id', [id]), 0);
+    await denied("insert into portfolio_work(legacy_slug,title,summary) values ('new','Title','Summary')");
+
+    await as('authenticated', admin);
+    await denied("update portfolio_work set legacy_slug='new' where id=$1", [id]);
+    await denied("update portfolio_work set service_path='//elsewhere.test/a' where id=$1", [id], '23514');
+    await rows(newObject, [newCover]);
+    await rows(`update portfolio_work set title='Revised example', summary='Edited summary',
+      goal='Revised goal', scope=array['New task'], handover='Revised handover',
+      service_path='/branding-creative', cover_asset=null, image_path=$1 where id=$2`, [newCover, id]);
+    await as('anon');
+    assert.deepEqual(await rows(`select title,summary,goal,scope,handover,service_path,cover_asset,image_path
+      from portfolio_work where legacy_slug=$1`, [legacy_slug]), [{
+      title:'Revised example', summary:'Edited summary', goal:'Revised goal', scope:['New task'],
+      handover:'Revised handover', service_path:'/branding-creative', cover_asset:null, image_path:newCover,
+    }]);
+    assert.equal(await count('select id from storage.objects where name=$1', [newCover]), 1);
+    await as('authenticated', admin);
+    await rows("update portfolio_work set status='draft',image_path=null where id=$1", [id]);
+    await as('anon');
+    assert.equal(await count('select id from portfolio_work where legacy_slug=$1', [legacy_slug]), 0);
+    assert.equal(await count('select id from storage.objects where name=$1', [newCover]), 0);
+    await as('authenticated', admin);
+    assert.equal(await count('select id from portfolio_work where id=$1', [id]), 1);
+    assert.equal(await count('delete from portfolio_work where id=$1 returning id', [id]), 1);
+    assert.equal(await count('delete from storage.objects where name=$1 returning id', [newCover]), 1);
+    await rows('update profiles set permissions=$1 where id=$2', [grants, alice]);
+    await as('authenticated', alice);
+  });
+
   await t.test('isolates drafts and enforces separate publication and media permissions', async () => {
     await rows(newObject, [cover]);
     await denied(newObject, [bob + '/cover.png']);
@@ -117,7 +173,7 @@ test('workspace database authorization', async t => {
 
     for (const [role, id] of [['anon', ''], ['authenticated', bob]]) {
       await as(role, id);
-      assert.equal(await count('select id from portfolio_work'), 0);
+      assert.equal(await count('select id from portfolio_work where id=$1', [work]), 0);
       assert.equal(await count('select id from testimonials'), 0);
       assert.equal(await count('select id from storage.objects'), 0);
     }
@@ -127,7 +183,7 @@ test('workspace database authorization', async t => {
     assert.equal(await count("update portfolio_work set status='published' returning id"), 1);
     assert.equal(await count("update testimonials set status='published' returning id"), 1);
     await as('anon');
-    assert.equal(await count('select id from portfolio_work'), 1);
+    assert.equal(await count('select id from portfolio_work where id=$1', [work]), 1);
     assert.equal(await count('select id from testimonials'), 1);
     assert.equal(await count('select id from storage.objects'), 1);
     await denied('select * from profiles');
