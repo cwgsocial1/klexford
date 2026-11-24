@@ -100,7 +100,7 @@ export default function Layout() {
         <p>Publishing, digital and growth services for authors and businesses.</p>
       </div>
         {footerGroups.map(g => <div key={g.title}><h2>{g.title}</h2>{g.links.map(([name,url]) => <Link key={url} to={url}>{name}</Link>)}</div>)}
-      </div><div className="footer-meta">© {new Date().getFullYear()} {agency_name} · <a href={`mailto:${contact_email}`}>{contact_email}</a></div>
+      </div><div className="footer-meta">© {new Date().getFullYear()} {agency_name} · <a href={`mailto:${contact_email}`}>{contact_email}</a> · <a href="tel:+17408604870">Call +1 740 860 4870</a></div>
     </div></footer>
   </>;
 }
