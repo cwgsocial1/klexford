@@ -315,6 +315,16 @@ export function About() {
     <Section className="bg-ink text-white"><Heading eyebrow="Process" pre="How we" accent="work" center light />
       <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">{steps.map((st) => <div key={st.n} className="rounded-2xl border border-white/10 bg-white/5 p-6"><span className="text-3xl font-bold text-brand-500">{st.n}</span><h3 className="mt-3 font-semibold">{st.title}</h3><p className="mt-2 text-sm text-white/70">{st.desc}</p></div>)}</div>
     </Section>
+    <Section>
+      <div className="mx-auto flex max-w-3xl flex-col items-center gap-6 sm:flex-row sm:gap-12">
+        <img src="/images/ayodele-ezekiel.webp" alt="Ayodele Ezekiel" width="500" height="500"
+          loading="lazy" className="w-full max-w-72 rounded-2xl"/>
+        <div className="text-center sm:text-left">
+          <p className="eyebrow">CEO of Klexford</p>
+          <h2 className="mt-2 text-4xl font-semibold">Ayodele Ezekiel</h2>
+        </div>
+      </div>
+    </Section>
     <Section><Heading eyebrow="Team" pre="Meet our" accent="experts" center /><div className="mt-12"><TeamGrid limit={3} /></div></Section>
     <CTA />
   </>);
