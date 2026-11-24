@@ -5,7 +5,7 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowRight, Check, Target, Megaphone, Rocket } from "lucide-react";
 import { services, audiences, steps, IMG } from "../data";
 import { Section, Heading, Img, PageHero, CTA, FAQ, field } from "../components/ui";
-import { ServiceCards, AudienceCards, TeamGrid } from "./Home";
+import { ServiceCards, AudienceCards } from "./Home";
 import ExpertDirectory from "../components/ExpertDirectory";
 import { portfolioUrl, usePublishedWork } from "../lib/portfolio";
 import { FormField, InquiryForm, ProjectInquiryForm } from "../components/ProjectInquiryForm";
@@ -325,7 +325,6 @@ export function About() {
         </div>
       </div>
     </Section>
-    <Section><Heading eyebrow="Team" pre="Meet our" accent="experts" center /><div className="mt-12"><TeamGrid limit={3} /></div></Section>
     <CTA />
   </>);
 }
