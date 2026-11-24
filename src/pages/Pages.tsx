@@ -338,6 +338,7 @@ export function StartProject() {
     <Section><div className="grid gap-10 lg:grid-cols-5">
       <div className="lg:col-span-2"><Img src={IMG.about2} alt="" className="aspect-[4/3] w-full rounded-2xl"/>
         <h2 className="mt-5 text-2xl">Prefer email?</h2><a href={`mailto:${contact_email}`} className="line-link mt-2">{contact_email} <ArrowRight size={15}/></a>
+        <h2 className="mt-5 text-2xl">Prefer to call?</h2><a href="tel:+17408604870" className="line-link mt-2">+1 740 860 4870</a>
       </div>
       <div className="lg:col-span-3"><ProjectInquiryForm/></div>
     </div></Section>
