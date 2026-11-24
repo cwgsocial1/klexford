@@ -93,10 +93,10 @@ export default function Layout() {
     <footer className="site-footer"><div className="container-x">
       <div className="footer-grid"><div>
         <Brand name={agency_name}/>
-        <div className="mt-4 flex items-center gap-3 text-sm">
+        <a href="https://cyberworldgroups.com" className="footer-partner">
           <img src="/images/cyberworldgroups.webp" alt="" width="48" height="48" loading="lazy" className="h-12 w-12 shrink-0 rounded-full"/>
           <span>In partnership with <strong className="block">CyberworldGroups</strong></span>
-        </div>
+        </a>
         <p>Publishing, digital and growth services for authors and businesses.</p>
       </div>
         {footerGroups.map(g => <div key={g.title}><h2>{g.title}</h2>{g.links.map(([name,url]) => <Link key={url} to={url}>{name}</Link>)}</div>)}

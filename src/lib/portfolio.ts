@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
 
 export const mediaBucket = "portfolio-media";
+export const videoBucket = "testimonial-videos";
 export { portfolioUrl } from "./publicPaths";
 export type Publication = "draft" | "published";
 export interface WorkPost {
@@ -25,12 +26,14 @@ export interface ClientQuote {
   client_name: string;
   client_title: string;
   quote: string;
+  video_path?: string | null;
+  videoUrl?: string;
   status: Publication;
   updated_at: string;
 }
 export type DisplayWork = WorkPost & { image: string };
 export const workColumns = "id,title,summary,category,audience,image_path,legacy_slug,cover_asset,goal,scope,handover,service_path,status,updated_at";
-export const quoteColumns = "id,client_name,client_title,quote,status,updated_at";
+export const quoteColumns = "*";
 
 export function contentClient() {
   if (!supabase) throw new Error("The content service has not been configured.");
@@ -102,6 +105,13 @@ export function usePublishedQuotes() {
       if (error) throw error;
       if (!current) return;
       const next = (data || []).slice(0, size) as ClientQuote[];
+      const paths = next.flatMap(row => row.video_path ? [row.video_path] : []);
+      if (paths.length) {
+        const { data: signed } = await contentClient().storage.from(videoBucket).createSignedUrls(paths, 3600);
+        const urls = new Map(signed?.map(item => [item.path, item.signedUrl]));
+        for (const row of next) if (row.video_path) row.videoUrl = urls.get(row.video_path) || undefined;
+      }
+      if (!current) return;
       setResult(old => {
         const known = new Map((page === 0 ? [] : old.rows).map(quote => [quote.id, quote]));
         next.forEach(quote => known.set(quote.id, quote));

@@ -163,7 +163,8 @@ function Testimonials() {
   return <section className="hs-wash" aria-labelledby="testimonials-title"><div className="hs-wrap hs-pad">
     <div className="hs-head"><h2 id="testimonials-title">Client testimonials</h2></div>
     <div className="grid gap-5 md:grid-cols-2">{quotes.rows.map(t => <figure key={t.id} className="rounded-2xl border border-slate-200 bg-white p-7">
-      <blockquote className="whitespace-pre-line break-words text-xl">“{t.quote}”</blockquote>
+      {t.videoUrl && <video controls playsInline preload="none" aria-label={`Video testimonial from ${t.client_name}`} src={t.videoUrl} className="mb-4 max-h-96 w-full rounded-lg bg-black"/>}
+      {t.quote && <blockquote className="whitespace-pre-line break-words text-xl">“{t.quote}”</blockquote>}
       <figcaption className="mt-5 text-sm"><strong>{t.client_name}</strong>{t.client_title && <span> · {t.client_title}</span>}</figcaption>
     </figure>)}</div>
     {quotes.more && <div className="mt-6">

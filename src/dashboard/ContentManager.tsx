@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, ExternalLink, Pencil, Plus, Trash2 } from "lucide-react";
 import { audiences, services, workDisciplines } from "../data";
 import { field, Label } from "../components/ui";
-import { mediaBucket, portfolioUrl, contentClient, quoteColumns, workColumns, type ClientQuote, type Publication, type WorkPost } from "../lib/portfolio";
+import { videoBucket, mediaBucket, portfolioUrl, contentClient, quoteColumns, workColumns, type ClientQuote, type Publication, type WorkPost } from "../lib/portfolio";
 import { usePortal } from "./PortalContext";
 
 type Kind = "work" | "testimonials";
@@ -21,6 +21,7 @@ const catalog = {
 const imageExtensions: Record<string, string> = {
   "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif",
 };
+const videoExtensions: Record<string, string> = { "video/mp4": "mp4", "video/webm": "webm" };
 const relatedServices = [
   ...services,
   { title: "Book Marketing", route: "/book-author-services/book-marketing" },
@@ -45,16 +46,18 @@ function EntryEditor({ kind, original, owner, publishAllowed, onClose, onSaved }
   const [entryId] = useState(() => original?.id || crypto.randomUUID());
   const { table, noun } = catalog[kind];
   const isWork = kind === "work";
+  const bucket = isWork ? mediaBucket : videoBucket;
+  const originalPath = isWork ? original?.image_path : original?.video_path;
   const wasPublished = original?.status === "published";
 
   useEffect(() => {
-    if (!original?.image_path) return;
+    if (!originalPath) return;
     let active = true;
-    void contentClient().storage.from(mediaBucket).createSignedUrl(original.image_path, 3600)
+    void contentClient().storage.from(bucket).createSignedUrl(originalPath, 3600)
       .then(({ data }) => { if (active && data?.signedUrl) setStoredCover(data.signedUrl); })
       .catch(() => {});
     return () => { active = false; };
-  }, [original?.image_path]);
+  }, [originalPath, bucket]);
   useEffect(() => {
     if (!file) { setPreview(""); return; }
     const url = URL.createObjectURL(file);
@@ -69,8 +72,8 @@ function EntryEditor({ kind, original, owner, publishAllowed, onClose, onSaved }
     const status: Publication = submitter?.value === "published" || (!submitter && wasPublished) ? "published" : "draft";
     const values = new FormData(event.currentTarget);
     const value = (name: string) => String(values.get(name) || "").trim();
-    if (isWork ? !value("title") || !value("summary") : !value("client_name") || !value("quote")) {
-      setError(isWork ? "Enter a project title and description." : "Enter the client’s name and testimonial."); return;
+    if (isWork ? !value("title") || !value("summary") : !value("client_name") || (!value("quote") && !file && !(originalPath && !removeCover))) {
+      setError(isWork ? "Enter a project title and description." : "Enter the client’s name and add a quote or a video."); return;
     }
     if ((status === "published" || wasPublished) && !publishAllowed) {
       setError("Publishing permission is required for this change."); return;
@@ -81,16 +84,16 @@ function EntryEditor({ kind, original, owner, publishAllowed, onClose, onSaved }
     let uploaded = "";
     try {
       const client = contentClient();
-      const storage = client.storage.from(mediaBucket);
+      const storage = client.storage.from(bucket);
       if (file) {
-        const ext = imageExtensions[file.type];
-        if (!ext || !file.size || file.size > 8 * 1024 * 1024) throw new Error("Choose a JPEG, PNG, WebP or AVIF image up to 8 MB.");
+        const ext = (isWork ? imageExtensions : videoExtensions)[file.type];
+        if (!ext || !file.size || file.size > (isWork ? 8 : 50) * 1024 * 1024) throw new Error(isWork ? "Choose a JPEG, PNG, WebP or AVIF image up to 8 MB." : "Choose an MP4 or WebM video up to 50 MB.");
         const path = (original?.author_id || owner) + "/" + crypto.randomUUID() + "." + ext;
         const upload = await storage.upload(path, file, { contentType: file.type, upsert: false });
         if (upload.error) throw upload.error;
         uploaded = path;
       }
-      const imagePath = uploaded || (!removeCover && original?.image_path) || null;
+      const imagePath = uploaded || (!removeCover && originalPath) || null;
       const changes = isWork
         ? {
           title: value("title"), summary: value("summary"), category: value("category"), audience: value("audience"),
@@ -98,7 +101,7 @@ function EntryEditor({ kind, original, owner, publishAllowed, onClose, onSaved }
           handover: value("handover"), service_path: value("service_path"), status,
           image_path: imagePath, cover_asset: !imagePath && !removeCover ? original?.cover_asset || null : null,
         }
-        : { client_name:value("client_name"), client_title:value("client_title"), quote:value("quote"), status };
+        : { client_name:value("client_name"), client_title:value("client_title"), quote:value("quote"), ...(uploaded || originalPath ? { video_path: imagePath } : {}), status };
       const mutation = original
         ? client.from(table).update(changes).eq("id", original.id).eq("updated_at", original.updated_at)
         : client.from(table).insert({ id:entryId, ...changes });
@@ -115,13 +118,13 @@ function EntryEditor({ kind, original, owner, publishAllowed, onClose, onSaved }
       if (result.error) throw result.error;
       if (!result.data) throw new Error("This entry changed or your access expired. Reopen the entry to load the latest version.");
       uploaded = "";
-      if (original?.image_path && original.image_path !== imagePath) {
-        await storage.remove([original.image_path]).catch(() => {});
+      if (originalPath && originalPath !== imagePath) {
+        await storage.remove([originalPath]).catch(() => {});
       }
       const message = status === "published" ? "Published on the website." : wasPublished ? "Unpublished and saved as a draft." : "Draft saved.";
       onSaved(message);
     } catch (err) {
-      if (uploaded) await contentClient().storage.from(mediaBucket).remove([uploaded]).catch(() => {});
+      if (uploaded) await contentClient().storage.from(bucket).remove([uploaded]).catch(() => {});
       setError(describeError(err));
     } finally {
       submitting.current = false;
@@ -183,7 +186,16 @@ function EntryEditor({ kind, original, owner, publishAllowed, onClose, onSaved }
         </> : <>
           <label className="block"><Label>Client name</Label><input name="client_name" required maxLength={160} defaultValue={original?.client_name} className={field}/></label>
           <label className="block"><Label>Role or company (optional)</Label><input name="client_title" maxLength={250} defaultValue={original?.client_title} className={field}/></label>
-          <label className="block"><Label>Testimonial</Label><textarea name="quote" required maxLength={3000} rows={5} defaultValue={original?.quote} className={field}/></label>
+          <label className="block"><Label>Written testimonial</Label><textarea name="quote" maxLength={3000} rows={5} defaultValue={original?.quote} className={field}/></label>
+          <label className="block"><Label>Testimonial video</Label>
+            <input ref={fileInput} type="file" accept="video/mp4,video/webm" className={field}
+              onChange={event => { setFile(event.target.files?.[0] || null); setRemoveCover(false); setError(""); }}/>
+          </label>
+          <p className="text-sm text-slate-600">Add a written testimonial, a video, or both. Videos can be MP4 or WebM up to 50 MB.</p>
+          {(preview || (!removeCover && storedCover)) && <video controls playsInline preload="metadata" src={preview || storedCover} className="max-h-64 w-full rounded-lg"/>}
+          {(file || (originalPath && !removeCover)) && <button type="button" className="text-sm underline" onClick={() => {
+            setFile(null); setRemoveCover(true); if (fileInput.current) fileInput.current.value = "";
+          }}>Remove video</button>}
         </>}
         {error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
         <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-5">
@@ -225,7 +237,7 @@ function ContentManager({ kind }: {kind: Kind}) {
     setError("");
     setPendingDelete("");
     async function load() {
-      let query = contentClient().from(table).select(columns + ",author_id");
+      let query = contentClient().from(table).select(columns === "*" ? columns : columns + ",author_id");
       if (role !== "admin") query = query.eq("author_id",owner);
       const offset = page * pageSize;
       const { data, error: failure } = await query.order("updated_at",{ascending:false}).order("id").range(offset, offset + pageSize);
@@ -255,6 +267,7 @@ function ContentManager({ kind }: {kind: Kind}) {
       if (result.error) throw result.error;
       if (!result.data) throw new Error("This entry changed or your access expired. Refresh the list and try again.");
       if (entry.image_path) await client.storage.from(mediaBucket).remove([entry.image_path]).catch(() => {});
+      if (entry.video_path) await client.storage.from(videoBucket).remove([entry.video_path]).catch(() => {});
       reset(kind === "work" ? "Project deleted." : "Testimonial deleted.");
     } catch (err) { setError(describeError(err)); }
     finally { setDeleting(false); setPendingDelete(""); }
